@@ -43,7 +43,7 @@ namespace mp_course::gpu_workloads{
         const std::string &stereo_left, const std::string &stereo_right, const int downscale_factor, const int window_radius, 
         const int min_disparity, const int max_disparity, const int threshold_value, const int sample_count
     ){
-        mp_course::Profiler::segment_start("PHASE 5 - opencl_zncc_pipeline");
+        mp_course::Profiler::segment_start("PHASE 5 - ZNCC_OPENCL_GLOBAL");
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
@@ -53,12 +53,12 @@ namespace mp_course::gpu_workloads{
             if((error_code = phase_5::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_5::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
-                        pp_dmap.save("opencl_depthmap.png");
+                        pp_dmap.save("depthmap_opencl_global.png");
                     }
                 }
             }
             else{
-                Profiler::add_info("ZNCC | Failed to initialize opencl runtime: " + std::to_string(error_code));
+                Profiler::add_info("ZNCC_OPENCL_GLOBAL | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }
@@ -68,7 +68,7 @@ namespace mp_course::gpu_workloads{
         const std::string &stereo_left, const std::string &stereo_right, const int downscale_factor, const int window_radius,
          const int min_disparity, const int max_disparity, const int threshold_value, const int sample_count
     ){
-        mp_course::Profiler::segment_start("PHASE 6_Tiled - opencl_zncc_pipeline");
+        mp_course::Profiler::segment_start("PHASE 6 - ZNCC_OPENCL_TILED");
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
@@ -78,12 +78,12 @@ namespace mp_course::gpu_workloads{
             if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
-                        pp_dmap.save("opencl_optimized_depthmap_a.png");
+                        pp_dmap.save("depthmap_opencl_tiled.png");
                     }
                 }
             }
             else{
-                Profiler::add_info("ZNCC_OPT_A | Failed to initialize opencl runtime: " + std::to_string(error_code));
+                Profiler::add_info("ZNCC_OPENCL_TILED | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }
@@ -93,7 +93,7 @@ namespace mp_course::gpu_workloads{
         const std::string &stereo_left, const std::string &stereo_right, const int downscale_factor, const int window_radius,
          const int min_disparity, const int max_disparity, const int threshold_value, const int sample_count
     ){
-        mp_course::Profiler::segment_start("PHASE 6_Vectorized - opencl_zncc_pipeline");
+        mp_course::Profiler::segment_start("PHASE 6 - ZNCC_OPENCL_VECTORIZED");
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
@@ -103,12 +103,12 @@ namespace mp_course::gpu_workloads{
             if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
-                        pp_dmap.save("opencl_optimized_depthmap_b.png");
+                        pp_dmap.save("depthmap_opencl_vectorized.png");
                     }
                 }
             }
             else{
-                Profiler::add_info("ZNCC_OPT_B | Failed to initialize opencl runtime: " + std::to_string(error_code));
+                Profiler::add_info("ZNCC_OPENCL_VECTORIZED | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }
@@ -118,7 +118,7 @@ namespace mp_course::gpu_workloads{
         const std::string &stereo_left, const std::string &stereo_right, const int downscale_factor, const int window_radius,
          const int min_disparity, const int max_disparity, const int threshold_value, const int sample_count
     ){
-        mp_course::Profiler::segment_start("PHASE 6_Image_2d_t - opencl_zncc_pipeline");
+        mp_course::Profiler::segment_start("PHASE 6 - ZNCC_OPENCL_IMAGE2D_T");
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
@@ -128,12 +128,12 @@ namespace mp_course::gpu_workloads{
             if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
-                        pp_dmap.save("opencl_optimized_depthmap_c.png");
+                        pp_dmap.save("depthmap_opencl_image2d_t.png");
                     }
                 }
             }
             else{
-                Profiler::add_info("ZNCC_OPT_C | Failed to initialize opencl runtime: " + std::to_string(error_code));
+                Profiler::add_info("ZNCC_OPENCL_IMAGE2D_T | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }

@@ -11,7 +11,7 @@ namespace mp_course::cpu_workloads{
         const std::string& stereo_left, const std::string& stereo_right, const int resize_factor, const int window_size,
         const int min_disparity, const int max_disparity, const int cross_check_threshold, const int sample_count
     ){
-        mp_course::Profiler::segment_start("PHASE 3 - run_zncc_single_thread_workload");
+        mp_course::Profiler::segment_start("PHASE 3 - ZNCC_SINGLETHREAD");
         namespace phase_3 = mp_course::cpu_workloads::phase_3;
         mp_course::Image left, right, dmap_left, dmap_right, pp_dmap;
         //Load stereo images
@@ -32,7 +32,7 @@ namespace mp_course::cpu_workloads{
                     ){
                         //Save the disparity maps
                         //dmap_left.save("left_disparity_map.png"); dmap_right.save("right_disparity_map.png");
-                        pp_dmap.save("single_depthmap.png");
+                        pp_dmap.save("depthmap_cpu_singlethread.png");
                     }
                 }
             }
@@ -44,7 +44,7 @@ namespace mp_course::cpu_workloads{
         const std::string& stereo_left, const std::string& stereo_right, const int resize_factor, const int window_size,
         const int min_disparity, const int max_disparity, const int cross_check_threshold, const int sample_count, ThreadPool& thread_pool
     ){
-        mp_course::Profiler::segment_start("PHASE 4 - run_zncc_multi_thread_workload");
+        mp_course::Profiler::segment_start("PHASE 4 - ZNCC_MULTITHREAD");
         namespace phase_4 = mp_course::cpu_workloads::phase_4;
         mp_course::Image left, right, dmap_left, dmap_right, pp_dmap;
         //Load stereo images
@@ -65,7 +65,7 @@ namespace mp_course::cpu_workloads{
                     ){
                         //Save the disparity maps
                         //dmap_left.save("left_disparity_map.png"); dmap_right.save("right_disparity_map.png");
-                        pp_dmap.save("multi_depthmap.png");
+                        pp_dmap.save("depthmap_cpu_multithreaded.png");
                     }
                 }
             }
