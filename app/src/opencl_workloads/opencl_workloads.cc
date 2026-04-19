@@ -24,16 +24,17 @@ namespace mp_course::gpu_workloads{
 
     //Runs the matrix addition workload
     void run_matrix_addtion_workload(float * m1, float * m2, const int matrix_size, const int sample_count){
+        cl_int error_code = 0;
+        OpenCLRuntime runtime;
         namespace phase_2 = mp_course::gpu_workloads::phase_2;
         mp_course::Profiler::segment_start("PHASE 2 - opencl_workload_add_matrix");
-        OpenCLRuntime runtime;
-        if(phase_2::initialize(runtime)){
+        if((error_code = phase_2::initialize(runtime)) == CL_SUCCESS){
             for(int i = 0; i < sample_count; ++i){
                 phase_2::add_matrix_pipeline(runtime, m1, m2, matrix_size);
             }
         }
         else{
-            Profiler::add_info("Failed to initialize opencl runtime");
+            Profiler::add_info("Matrix addition | Failed to initialize opencl runtime: " + std::to_string(error_code));
         }
     }
 
@@ -46,9 +47,10 @@ namespace mp_course::gpu_workloads{
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
-            namespace phase_5 = mp_course::gpu_workloads::phase_5;
+            cl_int error_code = 0;
             OpenCLRuntime runtime;
-            if(phase_5::initialize(runtime)){
+            namespace phase_5 = mp_course::gpu_workloads::phase_5;
+            if((error_code = phase_5::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_5::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
                         pp_dmap.save("opencl_depthmap.png");
@@ -56,7 +58,7 @@ namespace mp_course::gpu_workloads{
                 }
             }
             else{
-                Profiler::add_info("Failed to initialize opencl runtime");
+                Profiler::add_info("ZNCC | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }
@@ -70,9 +72,10 @@ namespace mp_course::gpu_workloads{
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
-            namespace phase_6 = mp_course::gpu_workloads::phase_6_a;
+            cl_int error_code = 0;
             OpenCLRuntime runtime;
-            if(phase_6::initialize(runtime)){
+            namespace phase_6 = mp_course::gpu_workloads::phase_6_a;
+            if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
                         pp_dmap.save("opencl_optimized_depthmap_a.png");
@@ -80,7 +83,7 @@ namespace mp_course::gpu_workloads{
                 }
             }
             else{
-                Profiler::add_info("Failed to initialize opencl runtime");
+                Profiler::add_info("ZNCC_OPT_A | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }
@@ -94,9 +97,10 @@ namespace mp_course::gpu_workloads{
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
-            namespace phase_6 = mp_course::gpu_workloads::phase_6_b;
+            cl_int error_code = 0;
             OpenCLRuntime runtime;
-            if(phase_6::initialize(runtime)){
+            namespace phase_6 = mp_course::gpu_workloads::phase_6_b;
+            if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
                         pp_dmap.save("opencl_optimized_depthmap_b.png");
@@ -104,7 +108,7 @@ namespace mp_course::gpu_workloads{
                 }
             }
             else{
-                Profiler::add_info("Failed to initialize opencl runtime");
+                Profiler::add_info("ZNCC_OPT_B | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }
@@ -118,9 +122,10 @@ namespace mp_course::gpu_workloads{
         mp_course::Image left, right, pp_dmap;
         //Load stereo images
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
-            namespace phase_6 = mp_course::gpu_workloads::phase_6_c;
+            cl_int error_code = 0;
             OpenCLRuntime runtime;
-            if(phase_6::initialize(runtime)){
+            namespace phase_6 = mp_course::gpu_workloads::phase_6_c;
+            if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
                         pp_dmap.save("opencl_optimized_depthmap_c.png");
@@ -128,7 +133,7 @@ namespace mp_course::gpu_workloads{
                 }
             }
             else{
-                Profiler::add_info("Failed to initialize opencl runtime");
+                Profiler::add_info("ZNCC_OPT_C | Failed to initialize opencl runtime: " + std::to_string(error_code));
             }
         }
     }

@@ -7,7 +7,7 @@
 namespace mp_course::gpu_workloads::phase_6_c{
 
     //Loads the opencl file and initializes the given kernels from it
-    bool initialize(OpenCLRuntime& runtime);
+    cl_int initialize(OpenCLRuntime& runtime);
 
     //Split pipeline rescale => grayscale, combine => Zncc
     cl_int pipeline(

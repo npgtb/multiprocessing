@@ -6,14 +6,14 @@
 namespace mp_course::gpu_workloads::phase_6_b{
 
     //Loads the opencl file and initializes the given kernels from it
-    bool initialize(OpenCLRuntime& runtime){
+    cl_int initialize(OpenCLRuntime& runtime){
         ScopeTimer scope_timer("initialize");
         const std::vector<std::string> kernels = {
             "resize_image", "grayscale_image", "calculate_disparity_map", "cross_check_occulsion_disparity_maps"
         };
         const std::string program_path = "data/kernels/phase_6_vectorized.cl";
         clw::Device device = prefered_device();
-        return runtime.load_file(device, program_path, kernels) == CL_SUCCESS;
+        return runtime.load_file(device, program_path, kernels);
     }
 
     //Create all the buffers for the pipeline

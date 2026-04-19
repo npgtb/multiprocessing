@@ -239,12 +239,12 @@ namespace mp_course::gpu_workloads::phase_2{
     }
 
     //Load the opencl kernel from a file
-    bool initialize(OpenCLRuntime& runtime){
+    cl_int initialize(OpenCLRuntime& runtime){
         ScopeTimer scope_timer("add_matrix_initialize");
         const std::string kernel_name = "add_matrix";
         const std::string program_path = "data/kernels/phase_2.cl";
         clw::Device device = prefered_device();
-        return runtime.load_file(device, program_path, {kernel_name}) == CL_SUCCESS;
+        return runtime.load_file(device, program_path, {kernel_name});
     }
 
     //Binds the constant arguments of the pipeline
