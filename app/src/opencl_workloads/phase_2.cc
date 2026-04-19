@@ -83,6 +83,31 @@ namespace mp_course::gpu_workloads::phase_2{
                 }
             },
             {
+                CL_DEVICE_TYPE,
+                "Device type",
+                [](const std::string& label, void*data_ptr){
+                    if(data_ptr){
+                        cl_device_type* type = static_cast<cl_device_type*>(data_ptr);
+                        std::string type_bitfield = ""; 
+                        std::vector<std::pair<std::string, cl_device_type>> types ={
+                            {"DEFAULT", CL_DEVICE_TYPE_DEFAULT},
+                            {"CPU", CL_DEVICE_TYPE_CPU},
+                            {"GPU", CL_DEVICE_TYPE_GPU},
+                            {"ACCELERATOR", CL_DEVICE_TYPE_ACCELERATOR},
+                            {"CUSTOM", CL_DEVICE_TYPE_CUSTOM},
+                            {"ALL", CL_DEVICE_TYPE_ALL}
+                        };
+                        //Pull out all the types of the device
+                        for(const auto& data_pair: types){
+                            if(*type & data_pair.second){
+                                type_bitfield += " (" + data_pair.first + ")";
+                            }
+                        }
+                        Profiler::add_info(label + ": " + type_bitfield);
+                    }
+                }
+            },
+            {
                 CL_DEVICE_VERSION,
                 "Device hardware version",
                 [](const std::string& label, void*data_ptr){
