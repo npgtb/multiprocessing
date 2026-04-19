@@ -107,9 +107,9 @@ namespace mp_course{
                             }
                             integrated_gpu = device;
                         }
-                        else if(device_type & CL_DEVICE_TYPE_CPU){
-                            cpu = device;
-                        }
+                    }
+                    else if(device_type & CL_DEVICE_TYPE_CPU){
+                        cpu = device;
                     }
                 }
 
