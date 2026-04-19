@@ -65,6 +65,22 @@ namespace mp_course{
         }
     }
 
+    //Returns the name of the given device
+    std::string get_device_name(clw::Device& device){
+        std::string device_name = "";
+        clw::ErrorOr<size_t> info_size = device.info_size(CL_DEVICE_NAME);
+        if(info_size.ok()){
+            void* device_info_fetch_data = malloc(info_size.value());
+            if(device.info(device_info_fetch_data, info_size.value(), CL_DEVICE_NAME) == CL_SUCCESS){
+                if(device_info_fetch_data){
+                    device_name = std::string(static_cast<char*>(device_info_fetch_data));
+                }
+            }
+            free(device_info_fetch_data);
+        }
+        return device_name;
+    }
+
     //Find a computing device that is prefered, preference order: GPU, INTEGRATED, CPU
     clw::Device prefered_device(){
         //Get platforms
@@ -86,6 +102,7 @@ namespace mp_course{
                         if(device.info(&shared_memory, sizeof(cl_bool), CL_DEVICE_HOST_UNIFIED_MEMORY) == CL_SUCCESS){
                             if(!shared_memory){
                                 //Dedicated GPU
+                                Profiler::add_info("prefered_device - Found a dedicated GPU: " + get_device_name(device));
                                 return device;
                             }
                             integrated_gpu = device;
@@ -100,8 +117,10 @@ namespace mp_course{
         }
         //INTEGRATED GPU => CPU
         if(integrated_gpu.id != 0){
+            Profiler::add_info("prefered_device - Found a integrated GPU: " + get_device_name(integrated_gpu));
             return integrated_gpu;
         }
+        Profiler::add_info("prefered_device - Falling back to CPU: " + get_device_name(cpu));
         return cpu;
     }
 
