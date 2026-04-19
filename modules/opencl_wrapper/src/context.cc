@@ -63,7 +63,7 @@ namespace clw{
     }
 
     //Loads a program from the given file
-    ErrorOr<std::shared_ptr<Program>> Context::load_program_file(const std::string& source_file, std::vector<Device>& build_devices){
+    ErrorOr<std::shared_ptr<Program>> Context::load_program_file(const std::string& source_file){
         cl_int error_code = CL_INVALID_VALUE;
         std::string source = read_file(source_file);
         if(!source.empty()){
@@ -75,19 +75,6 @@ namespace clw{
             //creates a holding obj for the program source: context, src_count, source, src_lengths, error_code
             cl_program program_id = clCreateProgramWithSource(context_, 1, &source_codes, NULL, &error_code);
             if(error_code != CL_SUCCESS){
-                return error_code;
-            }
-
-            std::vector<cl_device_id> device_ids;
-            device_ids.reserve(build_devices.size());
-            for(const auto& device: build_devices){
-                device_ids.push_back(device.id);
-            }
-            //https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clBuildProgram.html
-            //compiles the source code: program_id, device_count, devices, build options ,call back func, call back data 
-            error_code = clBuildProgram(program_id, device_ids.size(), device_ids.data(), NULL, NULL, NULL);
-            if(error_code != CL_SUCCESS){
-                clReleaseProgram(program_id);
                 return error_code;
             }
             return std::make_shared<Program>(program_id, shared_from_this());

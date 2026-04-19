@@ -1,3 +1,4 @@
+#include <opencl_wrapper/device.h>
 #include <opencl_wrapper/program.h>
 
 namespace clw{
@@ -46,6 +47,36 @@ namespace clw{
         );
         if(error_code == CL_SUCCESS){
             return kernel;
+        }
+        return error_code;
+    }
+
+    //Tries to build the given program for the given devices
+    cl_int Program::build_program(std::vector<Device>& build_devices){
+        std::vector<cl_device_id> device_ids;
+        device_ids.reserve(build_devices.size());
+        for(const auto& device: build_devices){
+            device_ids.push_back(device.id);
+        }
+        //https://registry.khronos.org/OpenCL/sdk/3.0/docs/man/html/clBuildProgram.html
+        //compiles the source code: program_id, device_count, devices, build options ,call back func, call back data 
+        return clBuildProgram(program_, device_ids.size(), device_ids.data(), NULL, NULL, NULL);
+    }
+
+    //Retrieve the build log of the program on the device
+    ErrorOr<std::string> Program::get_build_log(clw::Device& device){
+        size_t build_log_size = 0;
+        cl_int error_code = 0;
+        if((error_code = clGetProgramBuildInfo(
+                program_, device.id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &build_log_size
+        )) == CL_SUCCESS){
+            std::string build_log(build_log_size + 1, '\0');
+            if((error_code = clGetProgramBuildInfo(
+                    program_, device.id, CL_PROGRAM_BUILD_LOG, build_log_size, build_log.data(), nullptr
+            )) == CL_SUCCESS){
+                return build_log;
+            }
+            return error_code;
         }
         return error_code;
     }

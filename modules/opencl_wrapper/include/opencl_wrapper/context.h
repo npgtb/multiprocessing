@@ -40,7 +40,7 @@ namespace clw{
             ErrorOr<std::shared_ptr<CommandQueue>> create_cmd_queue(const Device& device, const cl_queue_properties* properties);
 
             //Loads a program from the given file
-            ErrorOr<std::shared_ptr<Program>> load_program_file(const std::string& source_file, std::vector<Device>& build_devices);
+            ErrorOr<std::shared_ptr<Program>> load_program_file(const std::string& source_file);
 
             //Creates a buffer object
             ErrorOr<Buffer> create_buffer(cl_mem_flags flags, const size_t buffer_size);

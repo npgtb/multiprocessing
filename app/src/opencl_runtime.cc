@@ -8,6 +8,7 @@ namespace mp_course{
 
     //Try to load from file
     cl_int OpenCLRuntime::load_file(clw::Device& device, const std::string& path, const std::vector<std::string>& kernel_names){
+        cl_int error_code = 0;
         std::vector<clw::Device> device_list {device};
         //Create context
         clw::ErrorOr<std::shared_ptr<clw::Context>> context_creation = clw::Device::create_context(device_list);
@@ -23,11 +24,22 @@ namespace mp_course{
             return cc_queue_creation.error();
         }
         //Load program from the given path
-        clw::ErrorOr<std::shared_ptr<clw::Program>> program_load = context_creation.value()->load_program_file(path, device_list);
+        clw::ErrorOr<std::shared_ptr<clw::Program>> program_load = context_creation.value()->load_program_file(path);
         if(!program_load.ok()){
-            Profiler::add_info("program_load failed!");
+            Profiler::add_info("program_load failed from " + path);
             return program_load.error();
         }
+
+        //Try to build the program
+        if((error_code = program_load.value()->build_program(device_list)) != CL_SUCCESS){
+            Profiler::add_info("program build failed (" + path + ") with code: " + std::to_string(error_code));
+            clw::ErrorOr<std::string> build_log = program_load.value()->get_build_log(device_list[0]);
+            if(build_log.ok()){
+                Profiler::add_info("program build log (" + path + ") is: " + build_log.value());
+            }
+            return error_code;
+        }
+
         //Create kernels
         for(const auto& kernel_name: kernel_names){
             clw::ErrorOr<std::shared_ptr<clw::Kernel>> kernel_creation = program_load.value()->create_kernel(kernel_name);
