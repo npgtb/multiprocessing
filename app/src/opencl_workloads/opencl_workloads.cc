@@ -2,9 +2,9 @@
 #include <opencl_workloads/phase_1.h>
 #include <opencl_workloads/phase_2.h>
 #include <opencl_workloads/phase_5.h>
-#include <opencl_workloads/phase_6_a.h>
-#include <opencl_workloads/phase_6_b.h>
-#include <opencl_workloads/phase_6_c.h>
+#include <opencl_workloads/phase_6_tiled.h>
+#include <opencl_workloads/phase_6_vectorized.h>
+#include <opencl_workloads/phase_6_image2d_t.h>
 #include <opencl_workloads/opencl_workloads.h>
 
 namespace mp_course::gpu_workloads{
@@ -74,7 +74,7 @@ namespace mp_course::gpu_workloads{
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
             cl_int error_code = 0;
             OpenCLRuntime runtime;
-            namespace phase_6 = mp_course::gpu_workloads::phase_6_a;
+            namespace phase_6 = mp_course::gpu_workloads::phase_6_tiled;
             if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
@@ -99,7 +99,7 @@ namespace mp_course::gpu_workloads{
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
             cl_int error_code = 0;
             OpenCLRuntime runtime;
-            namespace phase_6 = mp_course::gpu_workloads::phase_6_b;
+            namespace phase_6 = mp_course::gpu_workloads::phase_6_vectorized;
             if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){
@@ -124,7 +124,7 @@ namespace mp_course::gpu_workloads{
         if(left.load_path(stereo_left) && right.load_path(stereo_right)){
             cl_int error_code = 0;
             OpenCLRuntime runtime;
-            namespace phase_6 = mp_course::gpu_workloads::phase_6_c;
+            namespace phase_6 = mp_course::gpu_workloads::phase_6_image2d_t;
             if((error_code = phase_6::initialize(runtime)) == CL_SUCCESS){
                 for(int i = 0; i < sample_count; ++i){
                     if(phase_6::pipeline(runtime, left, right, pp_dmap, downscale_factor, window_radius, min_disparity, max_disparity, threshold_value) == CL_SUCCESS && i == 0){

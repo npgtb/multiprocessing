@@ -24,15 +24,12 @@ __kernel void grayscale_image(__read_only image2d_t original, __write_only image
         CLK_NORMALIZED_COORDS_FALSE |
         CLK_ADDRESS_CLAMP |
         CLK_FILTER_NEAREST;
-    //If we read it as ui its wonky
-    float4 pixel = read_imagef(
+    uint4 pixel = read_imageui(
         original, pixel_sampler, coordinate
-    ) * 255.f;
-    float3 color = convert_float3(pixel.xyz); 
+    );
     float3 weights = (float3)(0.2126f, 0.7152f, 0.0722f);
-    float gray_float = dot(color, weights);
-    uchar gray_value = (uchar)(gray_float + 0.5f);
-    uint4 gray_pixel = (uint4)(gray_value, 255, 255, 255);
+    float gray_float = dot(convert_float3(pixel.xyz), weights);
+    uint4 gray_pixel = (uint4)((uchar)(gray_float + 0.5f), 0, 0, 0);
     write_imageui(grayscaled, coordinate, gray_pixel);
 }
 

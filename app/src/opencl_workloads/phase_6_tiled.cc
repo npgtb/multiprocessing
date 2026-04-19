@@ -1,9 +1,9 @@
 #include <helpers.h>
 #include <profiler.h>
 #include <scope_timer.h>
-#include <opencl_workloads/phase_6_a.h>
+#include <opencl_workloads/phase_6_tiled.h>
 
-namespace mp_course::gpu_workloads::phase_6_a{
+namespace mp_course::gpu_workloads::phase_6_tiled{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime){

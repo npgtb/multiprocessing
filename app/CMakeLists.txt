@@ -17,9 +17,9 @@ add_executable(${THIS}
     src/opencl_workloads/phase_1.cc
     src/opencl_workloads/phase_2.cc
     src/opencl_workloads/phase_5.cc
-    src/opencl_workloads/phase_6_a.cc
-    src/opencl_workloads/phase_6_b.cc
-    src/opencl_workloads/phase_6_c.cc
+    src/opencl_workloads/phase_6_tiled.cc
+    src/opencl_workloads/phase_6_vectorized.cc
+    src/opencl_workloads/phase_6_image2d_t.cc
 )
 target_include_directories(${THIS}
     PRIVATE

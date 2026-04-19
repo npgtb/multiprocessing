@@ -1,9 +1,9 @@
 #include <helpers.h>
 #include <profiler.h>
 #include <scope_timer.h>
-#include <opencl_workloads/phase_6_c.h>
+#include <opencl_workloads/phase_6_image2d_t.h>
 
-namespace mp_course::gpu_workloads::phase_6_c{
+namespace mp_course::gpu_workloads::phase_6_image2d_t{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime){
@@ -26,26 +26,26 @@ namespace mp_course::gpu_workloads::phase_6_c{
             //Two Initial images for the original images
             {
                 .memory_flags = CL_MEM_READ_ONLY,
-                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNORM_INT8},
+                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNSIGNED_INT8},
                 .description = {.image_type = CL_MEM_OBJECT_IMAGE2D, .image_width = image_width, .image_height = image_height, .image_row_pitch = 0},
                 .host_data = nullptr,
             },
             {
                 .memory_flags = CL_MEM_READ_ONLY,
-                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNORM_INT8},
+                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNSIGNED_INT8},
                 .description = {.image_type = CL_MEM_OBJECT_IMAGE2D, .image_width = image_width, .image_height = image_height, .image_row_pitch = 0},
                 .host_data = nullptr,
             },
             //Two images for the downscaled images
             {
                 .memory_flags = CL_MEM_READ_WRITE,
-                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNORM_INT8},
+                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNSIGNED_INT8},
                 .description = {.image_type = CL_MEM_OBJECT_IMAGE2D, .image_width = downscaled_image_width, .image_height = downscaled_image_height, .image_row_pitch = 0},
                 .host_data = nullptr,
             },
             {
                 .memory_flags = CL_MEM_READ_WRITE,
-                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNORM_INT8},
+                .format = {.image_channel_order = CL_RGBA, .image_channel_data_type = CL_UNSIGNED_INT8},
                 .description = {.image_type = CL_MEM_OBJECT_IMAGE2D, .image_width = downscaled_image_width, .image_height = downscaled_image_height, .image_row_pitch = 0},
                 .host_data = nullptr,
             },
