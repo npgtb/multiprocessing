@@ -21,7 +21,7 @@ __kernel void grayscale_image(__global uint* original, __global uchar* grayscale
 inline float calculate_window_mean(int x, int y, int radius, __local uchar* pixels, const int width){
     float sum = 0;
     for(int yr = -radius; yr <= radius; ++yr){
-        uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
+        __local uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
         //#pragma unroll, slowed things down
         for(int xr = -radius; xr <= radius; ++xr){
             sum += *pixel++;
@@ -38,8 +38,8 @@ inline float calculate_zncc(
     float upper = 0.f;
     float lower_l = 0.f, lower_r = 0.f;
     for(int yr = -radius; yr <= radius; ++yr){
-        uchar * left_pixel = &left[((ly + yr) * left_width) + (lx - radius)];
-        uchar * right_pixel = &right[((ly + yr) * right_width) + (lxr - radius)];
+        __local uchar * left_pixel = &left[((ly + yr) * left_width) + (lx - radius)];
+        __local uchar * right_pixel = &right[((ly + yr) * right_width) + (lxr - radius)];
         //#pragma unroll, slowed things down
         for(int xr = -radius; xr <= radius; ++xr){
             //Calculate difference
@@ -146,7 +146,7 @@ uchar calculate_window_non_zero_middle(int x, int y, int radius, __local uchar* 
     int histogram[256] = {0};
     //Count the values with in the buckets
     for(int yr = -radius; yr <= radius; ++yr){
-        uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
+        __local uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
         for(int xr = -radius; xr <= radius; ++xr, ++pixel){
             if(*pixel > 0){
                 histogram[*pixel]++;

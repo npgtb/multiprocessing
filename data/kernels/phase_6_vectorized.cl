@@ -24,7 +24,7 @@ inline float calculate_window_mean(int x, int y, int radius, __local uchar* pixe
     float sum = 0;
     for(int yr = -radius; yr <= radius; ++yr){
         int xr = -radius;
-        uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
+        __local uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
         //Vectorized handling when possible
         for(int i = 0; i < vectorized_end; xr += 4, i += 4, pixel += 4){
             //Load 4 values at one time
@@ -50,8 +50,8 @@ inline float calculate_zncc(
     float4 lmean4 = (float4)lmean;
     float4 rmean4 = (float4)rmean;
     for(int yr = -radius; yr <= radius; ++yr){
-        uchar * left_pixel = &left[((ly + yr) * left_width) + (lx - radius)];
-        uchar * right_pixel = &right[((ly + yr) * right_width) + (lxr - radius)];
+        __local uchar * left_pixel = &left[((ly + yr) * left_width) + (lx - radius)];
+        __local uchar * right_pixel = &right[((ly + yr) * right_width) + (lxr - radius)];
         int xr = -radius;
         for(int i = 0; i < vectorized_end; xr += 4, i += 4, left_pixel += 4, right_pixel += 4){
             //Calculate difference
