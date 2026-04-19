@@ -5,8 +5,12 @@ __kernel void resize_image( __read_only image2d_t original, __write_only image2d
     const int y = get_global_id(1);
     int2 downscaled_coordinate = (int2)(x, y);
     int2 original_coordinate = (int2)(x * factor, y * factor);
+    const sampler_t pixel_sampler =
+        CLK_NORMALIZED_COORDS_FALSE |
+        CLK_ADDRESS_CLAMP |
+        CLK_FILTER_NEAREST;
     uint4 pixel = read_imageui(
-        original, original_coordinate
+        original, pixel_sampler, original_coordinate
     );
     write_imageui(downscaled, downscaled_coordinate, pixel);
 }
@@ -16,9 +20,13 @@ __kernel void grayscale_image(__read_only image2d_t original, __write_only image
     const int x = get_global_id(0);
     const int y = get_global_id(1);
     int2 coordinate = (int2)(x, y);
+    const sampler_t pixel_sampler =
+        CLK_NORMALIZED_COORDS_FALSE |
+        CLK_ADDRESS_CLAMP |
+        CLK_FILTER_NEAREST;
     //If we read it as ui its wonky
     float4 pixel = read_imagef(
-        original, coordinate
+        original, pixel_sampler, coordinate
     ) * 255.f;
     float3 color = convert_float3(pixel.xyz); 
     float3 weights = (float3)(0.2126f, 0.7152f, 0.0722f);
@@ -29,7 +37,7 @@ __kernel void grayscale_image(__read_only image2d_t original, __write_only image
 }
 
 //Calculates mean from the window in the given image. Expects grayscale image
-float calculate_window_mean(int x, int y, int radius, __read_only image2d_t pixels, int width, int height){
+float calculate_window_mean(int x, int y, int radius, __read_only image2d_t pixels, int width, int height, const sampler_t pixel_sampler){
     int window_size = (radius * 2 + 1);
     int count = window_size * window_size;
     float sum = 0;
@@ -39,7 +47,7 @@ float calculate_window_mean(int x, int y, int radius, __read_only image2d_t pixe
             int cx = clamp((x + xr), 0, width - 1);
             int cy = clamp((y + yr), 0, height - 1);
             int2 coordinate = (int2)(cx, cy);
-            uint4 pixel = read_imageui(pixels, coordinate);
+            uint4 pixel = read_imageui(pixels, pixel_sampler, coordinate);
             sum += pixel.x;
         }
     }
@@ -47,7 +55,11 @@ float calculate_window_mean(int x, int y, int radius, __read_only image2d_t pixe
 }
 
 //Calculates the ZNCC trough upper and lower sums. Expects grayscaled images
-float calculate_zncc(int x, int y, int radius, int disparity, float lmean, float rmean, __read_only image2d_t left, __read_only image2d_t right,  int width, int height){
+float calculate_zncc(
+    int x, int y, int radius, int disparity, float lmean, float rmean,
+    __read_only image2d_t left, __read_only image2d_t right,  int width, int height,
+    const sampler_t pixel_sampler
+){
 
     float upper = 0.f;
     float lower_l = 0.f, lower_r = 0.f;
@@ -58,8 +70,8 @@ float calculate_zncc(int x, int y, int radius, int disparity, float lmean, float
             int lcy = clamp((y + yr), 0, height - 1);
             int rcx = clamp((x - disparity + xr), 0, width - 1);
             int rcy = clamp((y + yr), 0, height - 1);
-            uint4 left_pixel = read_imageui(left, (int2)(lcx, lcy));
-            uint4 right_pixel = read_imageui(right, (int2)(rcx, rcy));
+            uint4 left_pixel = read_imageui(left, pixel_sampler, (int2)(lcx, lcy));
+            uint4 right_pixel = read_imageui(right, pixel_sampler, (int2)(rcx, rcy));
             //Calculate difference
             float l_diff = ((float)left_pixel.x) - lmean;
             float r_diff = ((float)right_pixel.x) - rmean;
@@ -91,13 +103,18 @@ __kernel void calculate_disparity_map(
 
     float max_zncc = -1.f; 
     uchar zncc_max_disparity = 0;
+    const sampler_t pixel_sampler =
+        CLK_NORMALIZED_COORDS_FALSE |
+        CLK_ADDRESS_CLAMP |
+        CLK_FILTER_NEAREST;
+
     //Calculate Left mean
-    float left_mean = calculate_window_mean(gx, gy, window_radius, left, width, height);
+    float left_mean = calculate_window_mean(gx, gy, window_radius, left, width, height, pixel_sampler);
     //Right window x coordinate: x - disparity
     for(int d = min_disparity, rx = gx - min_disparity; d <= max_disparity ; ++d, rx--){
         //Right mean into, zncc calculation
-        float right_mean = calculate_window_mean(rx, gy, window_radius, right,width, height);
-        float zncc = calculate_zncc(gx, gy, window_radius, d, left_mean, right_mean, left, right,width, height);
+        float right_mean = calculate_window_mean(rx, gy, window_radius, right,width, height, pixel_sampler);
+        float zncc = calculate_zncc(gx, gy, window_radius, d, left_mean, right_mean, left, right,width, height, pixel_sampler);
         //See if we have new highscore for zncc
         if(zncc > max_zncc){
             max_zncc = zncc;
@@ -119,7 +136,9 @@ uchar grayscale_disparity(
 }
 
 //Calculate medium value using histogram
-uchar calculate_window_non_zero_middle(int x, int y, int radius, __read_only image2d_t pixels, const int width, const int height){
+uchar calculate_window_non_zero_middle(
+    int x, int y, int radius, __read_only image2d_t pixels, const int width, const int height, const sampler_t pixel_sampler
+){
     int count = 0;
     int histogram[256] = {0};
     //Count the values with in the buckets
@@ -128,7 +147,7 @@ uchar calculate_window_non_zero_middle(int x, int y, int radius, __read_only ima
             //Edge handling => nearest valid pixel
             int cx = clamp(x + xr, 0, width-1);
             int cy = clamp(y + yr, 0, height-1);
-            uint4 pixel_value = read_imageui(pixels, (int2)(cx, cy));
+            uint4 pixel_value = read_imageui(pixels, pixel_sampler, (int2)(cx, cy));
             if(pixel_value.x > 0){
                 histogram[pixel_value.x]++;
                 count++;
@@ -173,19 +192,23 @@ __kernel void cross_check_occulsion_disparity_maps(
     const int width = get_global_size(0);
     const int height = get_global_size(1);
     const int gi = y * width + x;
+    const sampler_t pixel_sampler =
+        CLK_NORMALIZED_COORDS_FALSE |
+        CLK_ADDRESS_CLAMP |
+        CLK_FILTER_NEAREST;
 
-    uint4 disparity_value_l = read_imageui(left_pixels, (int2)(x, y));
+    uint4 disparity_value_l = read_imageui(left_pixels, pixel_sampler, (int2)(x, y));
     //In the right map, we move to the left disparity_value_l mutch
     uint4 disparity_value_r = 0;
     if(x - disparity_value_l.x >= 0){
         disparity_value_r = read_imageui(
-            right_pixels, (int2)(x - disparity_value_l.x, y)
+            right_pixels, pixel_sampler, (int2)(x - disparity_value_l.x, y)
         );
     }
     //Cross-check and occuld
     uchar final_value = disparity_value_l.x;
     if(abs(disparity_value_l.x - disparity_value_r.x) > threshold_value || final_value == 0){
-        final_value = calculate_window_non_zero_middle(x, y, window_radius, left_pixels, width, height);
+        final_value = calculate_window_non_zero_middle(x, y, window_radius, left_pixels, width, height, pixel_sampler);
     }
     write_imageui(pp_pixels, (int2)(x, y), (uint4)(grayscale_disparity(min_disparity, max_disparity, final_value), 0, 0, 0));
 }
