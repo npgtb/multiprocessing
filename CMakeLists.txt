@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-set(THIS mp_course)
+set(THIS multiprocessing)
 
 project(${THIS} LANGUAGES CXX)
 
