@@ -32,7 +32,7 @@ namespace mp_course::cpu_workloads::phase_3_vectorized{
         }
         return false;
     }
-
+#if defined(__SSE4_1__)
     //Grayscale function utilizing the SSE 128 wide registers
     bool grayscale_image_sse_128(Image& image){
         if(image.format == ImageFormat::RGBA){
@@ -94,7 +94,8 @@ namespace mp_course::cpu_workloads::phase_3_vectorized{
         }
         return false;
     }
-
+#endif
+#if defined(__AVX512F__)
     //Grayscale function utilizing the AVX 512 wide registers
     bool grayscale_image_avx_512(Image& image){
         if(image.format == ImageFormat::RGBA){
@@ -167,19 +168,20 @@ namespace mp_course::cpu_workloads::phase_3_vectorized{
         }
         return false;
     }
-
+#endif
 
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image){
-        if(__builtin_cpu_supports("avx512f")){
-            return grayscale_image_avx_512(image);
-        }
-        else if(__builtin_cpu_supports("sse4.1")){
-            return grayscale_image_sse_128(image);
-        }
+#if defined(__AVX512F__)
+        return grayscale_image_avx_512(image);
+#elif defined(__SSE4_1__)
+        return grayscale_image_sse_128(image);
+#else   
         return false;
+#endif
     }
 
+#if defined(__SSE4_1__)
     //Calculates mean from the window in the given image. Expects grayscale image
     float calculate_window_mean_sse_128(int x, int y, int radius, Image& image){
         uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
@@ -307,9 +309,10 @@ namespace mp_course::cpu_workloads::phase_3_vectorized{
         }
         return 0.f;
     }
-
+#endif
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
     bool calculate_disparity_map(const int window_radius, const int min_disparity, const int max_disparity, Image& left, Image& right, Image& map, std::string scope_tag){
+#if defined(__SSE4_1__)
         if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
             mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
@@ -343,6 +346,7 @@ namespace mp_course::cpu_workloads::phase_3_vectorized{
                 return true;
             }
         }
+#endif
         return false;
     }
 

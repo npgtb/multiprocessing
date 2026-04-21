@@ -78,7 +78,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         }
         return false;
     }
-
+#if defined(__SSE4_1__)
     //Grayscale function utilizing the SSE 128 wide registers
     void grayscale_image_sse_128_work_chunk(uint32_t* rgba_pixels, uint8_t* grayscaled_pixels, const int chunk_start, const int chunk_end){
         constexpr int red_shift = 24, green_shift = 16, blue_shift = 8;
@@ -124,7 +124,9 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
             grayscaled_pixels[i] = (red_modifier * red_chanel + green_modifier * green_channel + blue_modifier * blue_channel) >> 10;
         }
     }
+#endif
 
+#if defined(__AVX512F__)
     //Grayscale function utilizing the AVX 512 wide registers
     void grayscale_image_avx_512_work_chunk(uint32_t* rgba_pixels, uint8_t* grayscaled_pixels, const int chunk_start, const int chunk_end){
 
@@ -184,7 +186,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
             grayscaled_pixels[i] = (red_modifier * red_chanel + green_modifier * green_channel + blue_modifier * blue_channel) >> 10;
         }
     }
-
+#endif
 
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image, ThreadPool& thread_pool){
@@ -195,21 +197,19 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
             uint8_t * grayscaled_pixels = static_cast<uint8_t*>(malloc(memory_size * sizeof(uint8_t)));
             if(grayscaled_pixels){
                 uint32_t * rgba_pixels = static_cast<uint32_t*>(image.pixels);
-                if(__builtin_cpu_supports("avx512f")){
-                    queue_linear_work(
-                        thread_pool, memory_size, grayscale_image_avx_512_work_chunk,
-                        rgba_pixels, grayscaled_pixels
-                    );
-                }
-                else if(__builtin_cpu_supports("sse4.1")){
-                    queue_linear_work(
-                        thread_pool, memory_size, grayscale_image_sse_128_work_chunk,
-                        rgba_pixels, grayscaled_pixels
-                    );
-                }
-                else{
+                #if defined(__AVX512F__)
+                queue_linear_work(
+                    thread_pool, memory_size, grayscale_image_avx_512_work_chunk,
+                    rgba_pixels, grayscaled_pixels
+                );
+                #elif defined(__SSE4_1__)
+                queue_linear_work(
+                    thread_pool, memory_size, grayscale_image_sse_128_work_chunk,
+                    rgba_pixels, grayscaled_pixels
+                );
+                #else
                     return false;
-                }
+                #endif
                 //Wait for work to finish
                 thread_pool.wait_for_work();
                 rgba_pixels = nullptr;
@@ -222,6 +222,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         return false;
     }
 
+#if defined(__SSE4_1__)
     //Calculates mean from the window in the given image. Expects grayscale image
     float calculate_window_mean_sse_128(int x, int y, int radius, Image& image){
         uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
@@ -349,11 +350,12 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         }
         return 0.f;
     }
-
+#endif
     //Chunk processor for calculate_disparity_map
     void calculate_disparity_map_work_chunk(
         int window_radius, int min_disparity, int max_disparity, Image& left, Image& right, Image& map, const int chunk_start, const int chunk_end
     ){
+        #if defined(__SSE4_1__)
         uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
         //Calculate ZNCC
         for(int y = chunk_start; y < chunk_end; ++y){
@@ -376,6 +378,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 disparity_map_pixels[y * map.w + x] = zncc_max_disparity;
             }
         }
+        #endif
     }
 
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
