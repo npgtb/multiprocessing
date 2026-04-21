@@ -234,45 +234,33 @@ namespace mp_course::cpu_workloads::phase_4{
 
     //Calculate medium value using histogram
     uint8_t calculate_window_non_zero_middle(int x, int y, int radius, Image& image){
-        if(image.format == ImageFormat::GRAY){
-            //Assume grayscale
-            uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
-            int count = 0;
-            std::array<int, 256> histogram = {};
-            //Count the values with in the buckets
-            for(int yr = -radius; yr <= radius; ++yr){
-                int cy = image.clamp_y(y + yr) * image.w;
-                for(int xr = -radius; xr <= radius; ++xr){
-                    //Edge handling => nearest valid pixel
-                    int cx = image.clamp_x(x + xr);
-                    uint8_t pixel_value = pixels[cy + cx];
-                    if(pixel_value > 0){
-                        histogram[pixel_value]++;
-                        count++;
-                    }
+        //Assume grayscale
+        uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
+        int count = 0;
+        std::array<int, 256> histogram = {};
+        //Count the values with in the buckets
+        for(int yr = -radius; yr <= radius; ++yr){
+            int cy = image.clamp_y(y + yr) * image.w;
+            for(int xr = -radius; xr <= radius; ++xr){
+                //Edge handling => nearest valid pixel
+                int cx = image.clamp_x(x + xr);
+                uint8_t pixel_value = pixels[cy + cx];
+                if(pixel_value > 0){
+                    histogram[pixel_value]++;
+                    count++;
                 }
             }
-            //Do we have values in the histogram buckets?
-            if(count > 0){
-                //Figure out the middle value
-                int sum = 0;
-                //Middle value is reached when weve seen X pixels
-                int middle_count = count / 2;
-                for(int i = 1; i < 256; ++i){
-                    sum += histogram[i];
-                    if(sum >= middle_count){
-                        //Odd or even middle value
-                        if(sum == middle_count){
-                            //even middle value return next non zero bucket
-                            for(int j = i + 1; j < 256; ++j){
-                                if(histogram[j] > 0){
-                                    return (i + j) / 2;
-                                }
-                            }
-                            
-                        }
-                        return i;
-                    }
+        }
+        //Do we have values in the histogram buckets?
+        if(count > 0){
+            //Middle value is reached when weve seen X pixels
+            int middle_count = count >> 1;
+            int * histogram_value = &histogram[1];
+            int sum = 0;
+            for(int i = 1; i < 256; ++i){
+                sum += *histogram_value++;
+                if(sum > middle_count){
+                    return i;
                 }
             }
         }

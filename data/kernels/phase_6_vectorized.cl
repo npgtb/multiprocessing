@@ -13,8 +13,7 @@ __kernel void grayscale_image(__global uint* original, __global uchar* grayscale
     const int y = get_global_id(1);
     const int width = get_global_size(0);
     uchar4 original_pixel = as_uchar4(original[(y * width + x)]);
-    float3 weights = (float3)(0.2126f, 0.7152f, 0.0722f);
-    grayscaled[y * width + x] = (uchar) (dot(convert_float3(original_pixel.wzy), weights) + (.5f));
+    grayscaled[y * width + x] = (original_pixel.w * 218 + original_pixel.z * 732 + original_pixel.y * 74) >> 10;
 }
 
 //Calculates mean from the window in the given image. Expects grayscale image

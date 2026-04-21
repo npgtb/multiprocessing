@@ -247,16 +247,8 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 int load_index = cy + (x + xr);
                 //load first 8 grayscale values as int64
                 __m128i pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(pixels + load_index));
-                //Unpack low 64 bits as 16 bit wide
-                __m128i pixel_values_low = _mm_unpacklo_epi8(pixel_values, zero);
-                //Sum their pairs together
-                pixel_values = _mm_add_epi16(pixel_values_low, zero);
-                //Sum every 16 bit pair together
-                pixel_values = _mm_hadd_epi16(pixel_values, zero);
-                //Repeat again
-                pixel_values = _mm_hadd_epi16(pixel_values, zero);
                 //Sum both lanes to the finalsum
-                sum += _mm_extract_epi16(pixel_values, 0) + _mm_extract_epi16(pixel_values, 1);
+                sum += _mm_cvtsi128_si32(_mm_sad_epu8(pixel_values, zero));
             }
             //Handle remainder
             for(; xr <= radius; ++xr){
@@ -278,6 +270,8 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         constexpr int load_size = 8;
         const int rx = x - disparity; 
         __m128i zero = _mm_setzero_si128();
+        __m128 left_mean_128 = _mm_set1_ps(lmean);
+        __m128 right_mean_128 = _mm_set1_ps(rmean);
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = left.clamp_y(y + yr) * left.w;
             int i = 0; 
@@ -296,19 +290,19 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 //load first 8 grayscale values as int64
                 __m128i left_pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(lpixels + (cy + lcx)));
                 __m128i right_pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(rpixels + (cy + rcx)));
-                //Unpack low 64 bits as 16 bit wide
+                //Unpack low 8 bits as 16 bit wide
                 __m128i left_values_low = _mm_unpacklo_epi8(left_pixel_values, zero);
                 __m128i right_values_low = _mm_unpacklo_epi8(right_pixel_values, zero);
-                //Convert 16 bit packed values to floating point values
+                //Convert 16 bit (32bit) packed values to floating point values
                 __m128 float_left_low = _mm_cvtepi32_ps(_mm_unpacklo_epi16(left_values_low, zero)); 
                 __m128 float_left_high = _mm_cvtepi32_ps(_mm_unpackhi_epi16(left_values_low, zero));
                 __m128 float_right_low = _mm_cvtepi32_ps(_mm_unpacklo_epi16(right_values_low, zero));
                 __m128 float_right_high = _mm_cvtepi32_ps(_mm_unpackhi_epi16(right_values_low, zero));
                 //Subtract means
-                float_left_low = _mm_sub_ps(float_left_low, _mm_set1_ps(lmean));
-                float_left_high = _mm_sub_ps(float_left_high, _mm_set1_ps(lmean));
-                float_right_low = _mm_sub_ps(float_right_low, _mm_set1_ps(rmean));
-                float_right_high = _mm_sub_ps(float_right_high, _mm_set1_ps(rmean));
+                float_left_low = _mm_sub_ps(float_left_low, left_mean_128);
+                float_left_high = _mm_sub_ps(float_left_high, left_mean_128);
+                float_right_low = _mm_sub_ps(float_right_low, right_mean_128);
+                float_right_high = _mm_sub_ps(float_right_high, right_mean_128);
                 //Do the multiplications
                 __m128 upper_low = _mm_mul_ps(float_left_low, float_right_low);
                 __m128 upper_high = _mm_mul_ps(float_left_high, float_right_high);
@@ -317,16 +311,23 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 __m128 lower_right_low = _mm_mul_ps(float_right_low, float_right_low);
                 __m128 lower_right_high = _mm_mul_ps(float_right_high, float_right_high);
                 //Add to the zncc sums
-                __m128 sum_upper = _mm_hadd_ps(upper_low, upper_high);
-                sum_upper = _mm_hadd_ps(sum_upper, sum_upper);
+                //Add 32bit floats in lower and higher together
+                __m128 sum_upper = _mm_add_ps(upper_low, upper_high);
+                //Move 2 high floats into the lower position and add them to the lower position floats
+                sum_upper = _mm_add_ps(sum_upper, _mm_movehl_ps(sum_upper, sum_upper));
+                //Shuffle high of low to the low position and add low positions together
+                sum_upper = _mm_add_ss(sum_upper, _mm_shuffle_ps(sum_upper, sum_upper, 1));
+                ///Extract lowest float
                 upper += _mm_cvtss_f32(sum_upper);
 
-                __m128 sum_lower_left = _mm_hadd_ps(lower_left_low, lower_left_high);
-                sum_lower_left = _mm_hadd_ps(sum_lower_left, sum_lower_left);
+                __m128 sum_lower_left = _mm_add_ps(lower_left_low, lower_left_high);
+                sum_lower_left = _mm_add_ps(sum_lower_left, _mm_movehl_ps(sum_lower_left, sum_lower_left));
+                sum_lower_left = _mm_add_ss(sum_lower_left, _mm_shuffle_ps(sum_lower_left, sum_lower_left, 1));
                 lower_l += _mm_cvtss_f32(sum_lower_left);
 
-                __m128 sum_lower_right = _mm_hadd_ps(lower_right_low, lower_right_high);
-                sum_lower_right = _mm_hadd_ps(sum_lower_right, sum_lower_right);
+                __m128 sum_lower_right = _mm_add_ps(lower_right_low, lower_right_high);
+                sum_lower_right = _mm_add_ps(sum_lower_right, _mm_movehl_ps(sum_lower_right, sum_lower_right));
+                sum_lower_right = _mm_add_ss(sum_lower_right, _mm_shuffle_ps(sum_lower_right, sum_lower_right, 1));
                 lower_r += _mm_cvtss_f32(sum_lower_right);
             }
             //Handle remainder
@@ -417,45 +418,33 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
 
     //Calculate medium value using histogram
     uint8_t calculate_window_non_zero_middle(int x, int y, int radius, Image& image){
-        if(image.format == ImageFormat::GRAY){
-            //Assume grayscale
-            uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
-            int count = 0;
-            std::array<int, 256> histogram = {};
-            //Count the values with in the buckets
-            for(int yr = -radius; yr <= radius; ++yr){
-                int cy = image.clamp_y(y + yr) * image.w;
-                for(int xr = -radius; xr <= radius; ++xr){
-                    //Edge handling => nearest valid pixel
-                    int cx = image.clamp_x(x + xr);
-                    uint8_t pixel_value = pixels[cy + cx];
-                    if(pixel_value > 0){
-                        histogram[pixel_value]++;
-                        count++;
-                    }
+        //Assume grayscale
+        uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
+        int count = 0;
+        std::array<int, 256> histogram = {};
+        //Count the values with in the buckets
+        for(int yr = -radius; yr <= radius; ++yr){
+            int cy = image.clamp_y(y + yr) * image.w;
+            for(int xr = -radius; xr <= radius; ++xr){
+                //Edge handling => nearest valid pixel
+                int cx = image.clamp_x(x + xr);
+                uint8_t pixel_value = pixels[cy + cx];
+                if(pixel_value > 0){
+                    histogram[pixel_value]++;
+                    count++;
                 }
             }
-            //Do we have values in the histogram buckets?
-            if(count > 0){
-                //Figure out the middle value
-                int sum = 0;
-                //Middle value is reached when weve seen X pixels
-                int middle_count = count / 2;
-                for(int i = 1; i < 256; ++i){
-                    sum += histogram[i];
-                    if(sum >= middle_count){
-                        //Odd or even middle value
-                        if(sum == middle_count){
-                            //even middle value return next non zero bucket
-                            for(int j = i + 1; j < 256; ++j){
-                                if(histogram[j] > 0){
-                                    return (i + j) / 2;
-                                }
-                            }
-                            
-                        }
-                        return i;
-                    }
+        }
+        //Do we have values in the histogram buckets?
+        if(count > 0){
+            //Middle value is reached when weve seen X pixels
+            int middle_count = count >> 1;
+            int * histogram_value = &histogram[1];
+            int sum = 0;
+            for(int i = 1; i < 256; ++i){
+                sum += *histogram_value++;
+                if(sum > middle_count){
+                    return i;
                 }
             }
         }
