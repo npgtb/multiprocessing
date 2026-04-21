@@ -7,7 +7,7 @@ This module depends on the [SDL3](https://github.com/libsdl-org/SDL) and [SDL3_I
 This module depends on the opencl project, specifically the 3.0 version.
 ## Building
 The ```CMakePresets.json``` provides a release preset for building with ```Ninja``` build system.
-```phase_3_vectorized.cc``` utilizes ```__builtin_cpu_supports``` which is supported by gcc and clang.
+```phase_3_vectorized.cc``` and ```phase_4_vectorized.cc``` utilizes the gcc compile time flags to detect cpu capabilities.
 ```
 cmake --preset release
 cmake --build --preset release
