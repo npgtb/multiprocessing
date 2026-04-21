@@ -1,9 +1,10 @@
 #include <math.h>
 #include <algorithm>
+#include <immintrin.h>
 #include <scope_timer.h>
 #include <cpu_workloads/phase_4.h>
 
-namespace mp_course::cpu_workloads::phase_4{
+namespace mp_course::cpu_workloads::phase_4_vectorized{
 
     //Generic function for queueing linear work into the threadpool
     template <typename Function, typename... Arguments>
@@ -78,24 +79,112 @@ namespace mp_course::cpu_workloads::phase_4{
         return false;
     }
 
-    //Chunk processor for grayscale_image
-    void grayscale_image_work_chunk(uint32_t* rgba_pixels, uint8_t* grayscaled_pixels, const int chunk_start, const int chunk_end){
-        //Pixel modifiers
+    //Grayscale function utilizing the SSE 128 wide registers
+    void grayscale_image_sse_128_work_chunk(uint32_t* rgba_pixels, uint8_t* grayscaled_pixels, const int chunk_start, const int chunk_end){
         constexpr int red_shift = 24, green_shift = 16, blue_shift = 8;
-        constexpr float red_modifier = 0.2126, green_modifier = 0.7152, blue_modifier = 0.0722;
+        constexpr int right_shift = 10;
         constexpr uint8_t mask = 0xFF;
-        //Process the chunk
-        for(int i = chunk_start; i < chunk_end; ++i){
-            //Apply the grayscale formula to the image pixels
-            grayscaled_pixels[i] = static_cast<uint8_t>(
-                std::round(
-                    ((rgba_pixels[i] >> red_shift) & mask) * red_modifier + 
-                    ((rgba_pixels[i] >> green_shift) & mask) * green_modifier +
-                    ((rgba_pixels[i] >> blue_shift) & mask) * blue_modifier
-                )
-            );
+        constexpr int red_modifier = 218, green_modifier = 732, blue_modifier = 74;
+        //Broadcast 32 bit mask value to the 128 bit value
+        const __m128i mask_128 = _mm_set1_epi32(mask);
+        //Broadcast 32 bit modifier values to the 128 bit variable 
+        const __m128i red_modifier_128 = _mm_set1_epi32(red_modifier);
+        const __m128i green_modifier_128 = _mm_set1_epi32(green_modifier);
+        const __m128i blue_modifier_128 = _mm_set1_epi32(blue_modifier);
+
+        int i = chunk_start;
+        //Process 4 pixel at time (128 bits)
+        for(; i + 4 < chunk_end; i += 4){
+            //Load 128 bits from the rgba values
+            __m128i pixels = _mm_loadu_si128((__m128i*)(rgba_pixels + i));
+            //Pull out the individual color channels from the pixels by shifting each 32 bit value and mask anding the 128 bit value
+            __m128i red_channel = _mm_and_si128(_mm_srli_epi32(pixels, red_shift), mask_128);
+            __m128i green_channel = _mm_and_si128(_mm_srli_epi32(pixels, green_shift), mask_128);
+            __m128i blue_channel = _mm_and_si128(_mm_srli_epi32(pixels, blue_shift), mask_128);
+            //Multiply the packed 32 bit integers
+            red_channel = _mm_mullo_epi32(red_channel, red_modifier_128);
+            green_channel = _mm_mullo_epi32(green_channel, green_modifier_128);
+            blue_channel = _mm_mullo_epi32(blue_channel, blue_modifier_128);
+            //Sum the packed 32 bit values
+            __m128i channel_sum = _mm_add_epi32(_mm_add_epi32(red_channel, green_channel), blue_channel);
+            //Shift the packed 32 bit values down to 8 bit values
+            channel_sum = _mm_srli_epi32(channel_sum, right_shift);
+            //Pack 32 bits down to 8 bit values
+            __m128i packed16 = _mm_packs_epi32(channel_sum, _mm_setzero_si128());
+            __m128i packed8  = _mm_packus_epi16(packed16, packed16);
+            //Store the lower 32 bit value
+            *(uint32_t*)(grayscaled_pixels + i) = _mm_cvtsi128_si32(packed8);
+        }
+        //Process the remainder 
+        for (; i < chunk_end; ++i) {
+            uint32_t pixel = rgba_pixels[i];
+            uint8_t red_chanel = (pixel >> red_shift) & mask;
+            uint8_t green_channel = (pixel >> green_shift) & mask;
+            uint8_t blue_channel = (pixel >> blue_shift) & mask;
+            grayscaled_pixels[i] = (red_modifier * red_chanel + green_modifier * green_channel + blue_modifier * blue_channel) >> 10;
         }
     }
+
+    //Grayscale function utilizing the AVX 512 wide registers
+    void grayscale_image_avx_512_work_chunk(uint32_t* rgba_pixels, uint8_t* grayscaled_pixels, const int chunk_start, const int chunk_end){
+
+        //Set modifiers and allocate memory
+        constexpr int red_shift = 24, green_shift = 16, blue_shift = 8;
+        constexpr int right_shift = 10;
+        constexpr uint8_t mask = 0xFF;
+        constexpr int red_modifier = 218, green_modifier = 732, blue_modifier = 74;
+        //Broadcast 32 bit mask value to the 512 bit value
+        const __m512i mask_512 = _mm512_set1_epi32(mask);
+        //Broadcast 32 bit modifier values to the 128 bit variable 
+        const __m512i red_modifier_512 = _mm512_set1_epi32(red_modifier);
+        const __m512i green_modifier_512 = _mm512_set1_epi32(green_modifier);
+        const __m512i blue_modifier_512 = _mm512_set1_epi32(blue_modifier);
+
+        int i = chunk_start;
+        //Process 4 pixel at time (128 bits)
+        for(; i + 16 < chunk_end; i += 16){
+            //Load 512 bits from the rgba values
+            __m512i pixels = _mm512_loadu_si512((__m512i*)(rgba_pixels + i));
+            //Pull out the individual color channels from the pixels by shifting each 32 bit value and mask anding the 512 bit value
+            __m512i red_channel = _mm512_and_si512(_mm512_srli_epi32(pixels, red_shift), mask_512);
+            __m512i green_channel = _mm512_and_si512(_mm512_srli_epi32(pixels, green_shift), mask_512);
+            __m512i blue_channel = _mm512_and_si512(_mm512_srli_epi32(pixels, blue_shift), mask_512);
+            //Multiply the packed 32 bit integers
+            red_channel = _mm512_mullo_epi32(red_channel, red_modifier_512);
+            green_channel = _mm512_mullo_epi32(green_channel, green_modifier_512);
+            blue_channel = _mm512_mullo_epi32(blue_channel, blue_modifier_512);
+            //Sum the packed 32 bit values
+            __m512i channel_sum = _mm512_add_epi32(_mm512_add_epi32(red_channel, green_channel), blue_channel);
+            //Shift the packed 32 bit values down to 8 bit values
+            channel_sum = _mm512_srli_epi32(channel_sum, right_shift);
+            //Pack 32 bits down to 8 bit values for storing
+            //Split the 512 into high and low 256
+            __m256i low_32_values = _mm512_castsi512_si256(channel_sum);
+            __m256i high_32_values  = _mm512_extracti64x4_epi64(channel_sum, 1);
+            //Split the 256's into 128s
+            __m128i low_128_1 = _mm256_castsi256_si128(low_32_values);
+            __m128i low_128_2 = _mm256_extracti128_si256(low_32_values, 1);
+            __m128i high_128_1 = _mm256_castsi256_si128(high_32_values);
+            __m128i high_128_2 = _mm256_extracti128_si256(high_32_values, 1);
+            //Pack the 32 bit values into 16 bit values
+            __m128i low_packed_16 = _mm_packs_epi32(low_128_1, low_128_2);
+            __m128i high_packed_16 = _mm_packs_epi32(high_128_1, high_128_2);
+            //Pack the 16 bit values into 8 bit values
+            __m128i packed_8 = _mm_packus_epi16(low_packed_16, high_packed_16);
+            //Store the grayscale values
+            _mm_storeu_si128((__m128i*)(grayscaled_pixels + i), packed_8);
+        }
+        //Process the remainder 
+        for (; i < chunk_end; ++i) {
+            uint32_t pixel = rgba_pixels[i];
+            uint8_t red_chanel = (pixel >> red_shift) & mask;
+            uint8_t green_channel = (pixel >> green_shift) & mask;
+            uint8_t blue_channel = (pixel >> blue_shift) & mask;
+
+            grayscaled_pixels[i] = (red_modifier * red_chanel + green_modifier * green_channel + blue_modifier * blue_channel) >> 10;
+        }
+    }
+
 
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image, ThreadPool& thread_pool){
@@ -106,12 +195,21 @@ namespace mp_course::cpu_workloads::phase_4{
             uint8_t * grayscaled_pixels = static_cast<uint8_t*>(malloc(memory_size * sizeof(uint8_t)));
             if(grayscaled_pixels){
                 uint32_t * rgba_pixels = static_cast<uint32_t*>(image.pixels);
-                //Threading strat => Split image into chunks of X pixels
-                //where X = (total_pixels / pool size) (+ remainder added to the last workload)
-                queue_linear_work(
-                    thread_pool, memory_size, grayscale_image_work_chunk,
-                    rgba_pixels, grayscaled_pixels
-                );
+                if(__builtin_cpu_supports("avx512f")){
+                    queue_linear_work(
+                        thread_pool, memory_size, grayscale_image_avx_512_work_chunk,
+                        rgba_pixels, grayscaled_pixels
+                    );
+                }
+                else if(__builtin_cpu_supports("sse4.1")){
+                    queue_linear_work(
+                        thread_pool, memory_size, grayscale_image_sse_128_work_chunk,
+                        rgba_pixels, grayscaled_pixels
+                    );
+                }
+                else{
+                    return false;
+                }
                 //Wait for work to finish
                 thread_pool.wait_for_work();
                 rgba_pixels = nullptr;
@@ -125,34 +223,116 @@ namespace mp_course::cpu_workloads::phase_4{
     }
 
     //Calculates mean from the window in the given image. Expects grayscale image
-    float calculate_window_mean(int x, int y, int radius, Image& image){
+    float calculate_window_mean_sse_128(int x, int y, int radius, Image& image){
         uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
-        int window_size = (radius * 2 + 1);
-        int count = window_size * window_size;
+        int window_size = ((radius *2) + 1);
+        int pixel_count = window_size * window_size;
         float sum = 0;
+        constexpr int load_size = 8;
+        
+        __m128i zero = _mm_setzero_si128();
         for(int yr = -radius; yr <= radius; ++yr){
-            int cy = image.clamp_y(y + yr) * image.w ;
-            for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
+            int cy = image.clamp_y(y + yr) * image.w;
+            int i = 0; 
+            int xr = -radius;
+            //Can we load 8 at time, and do we need to clamp?
+            for(; 
+                  i + load_size < window_size &&
+                  i + load_size < image.w && 
+                  xr + load_size <= radius &&
+                  x + xr >= 0; 
+                  i += load_size, xr += load_size
+            ){
+                int load_index = cy + (x + xr);
+                //load first 8 grayscale values as int64
+                __m128i pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(pixels + load_index));
+                //Unpack low 64 bits as 16 bit wide
+                __m128i pixel_values_low = _mm_unpacklo_epi8(pixel_values, zero);
+                //Sum their pairs together
+                pixel_values = _mm_add_epi16(pixel_values_low, zero);
+                //Sum every 16 bit pair together
+                pixel_values = _mm_hadd_epi16(pixel_values, zero);
+                //Repeat again
+                pixel_values = _mm_hadd_epi16(pixel_values, zero);
+                //Sum both lanes to the finalsum
+                sum += _mm_extract_epi16(pixel_values, 0) + _mm_extract_epi16(pixel_values, 1);
+            }
+            //Handle remainder
+            for(; xr <= radius; ++xr){
                 int cx = image.clamp_x(x + xr);
                 sum += pixels[cy + cx];
             }
         }
-        return sum / count;
+        return sum / pixel_count;
+        return 0.f;
     }
 
     //Calculates the ZNCC trough upper and lower sums. Expects grayscaled images
-    float calculate_zncc(int x, int y, int radius, int disparity, float lmean, float rmean, Image& left, Image& right){
+    float calculate_zncc_sse_128(int x, int y, int radius, int disparity, float lmean, float rmean, Image& left, Image& right){
         uint8_t* lpixels = static_cast<uint8_t*>(left.pixels);
         uint8_t* rpixels = static_cast<uint8_t*>(right.pixels);
         float upper = 0.f;
         float lower_l = 0.f, lower_r = 0.f;
+        int window_size = ((radius *2) + 1);
+        constexpr int load_size = 8;
+        const int rx = x - disparity; 
+        __m128i zero = _mm_setzero_si128();
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = left.clamp_y(y + yr) * left.w;
-            for(int xr = -radius; xr <= radius; ++xr){
+            int i = 0; 
+            int xr = -radius;
+            //Can we load 8 at time, and do we need to clamp?
+            for(; 
+                  i + load_size < window_size &&
+                  i + load_size < left.w && 
+                  xr + load_size <= radius &&
+                  x + xr >= 0 &&
+                  rx + xr >= 0; 
+                  i += load_size, xr += load_size
+            ){
+                int lcx = x + xr;
+                int rcx = rx + xr;
+                //load first 8 grayscale values as int64
+                __m128i left_pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(lpixels + (cy + lcx)));
+                __m128i right_pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(rpixels + (cy + rcx)));
+                //Unpack low 64 bits as 16 bit wide
+                __m128i left_values_low = _mm_unpacklo_epi8(left_pixel_values, zero);
+                __m128i right_values_low = _mm_unpacklo_epi8(right_pixel_values, zero);
+                //Convert 16 bit packed values to floating point values
+                __m128 float_left_low = _mm_cvtepi32_ps(_mm_unpacklo_epi16(left_values_low, zero)); 
+                __m128 float_left_high = _mm_cvtepi32_ps(_mm_unpackhi_epi16(left_values_low, zero));
+                __m128 float_right_low = _mm_cvtepi32_ps(_mm_unpacklo_epi16(right_values_low, zero));
+                __m128 float_right_high = _mm_cvtepi32_ps(_mm_unpackhi_epi16(right_values_low, zero));
+                //Subtract means
+                float_left_low = _mm_sub_ps(float_left_low, _mm_set1_ps(lmean));
+                float_left_high = _mm_sub_ps(float_left_high, _mm_set1_ps(lmean));
+                float_right_low = _mm_sub_ps(float_right_low, _mm_set1_ps(rmean));
+                float_right_high = _mm_sub_ps(float_right_high, _mm_set1_ps(rmean));
+                //Do the multiplications
+                __m128 upper_low = _mm_mul_ps(float_left_low, float_right_low);
+                __m128 upper_high = _mm_mul_ps(float_left_high, float_right_high);
+                __m128 lower_left_low = _mm_mul_ps(float_left_low, float_left_low);
+                __m128 lower_left_high = _mm_mul_ps(float_left_high, float_left_high);
+                __m128 lower_right_low = _mm_mul_ps(float_right_low, float_right_low);
+                __m128 lower_right_high = _mm_mul_ps(float_right_high, float_right_high);
+                //Add to the zncc sums
+                __m128 sum_upper = _mm_hadd_ps(upper_low, upper_high);
+                sum_upper = _mm_hadd_ps(sum_upper, sum_upper);
+                upper += _mm_cvtss_f32(sum_upper);
+
+                __m128 sum_lower_left = _mm_hadd_ps(lower_left_low, lower_left_high);
+                sum_lower_left = _mm_hadd_ps(sum_lower_left, sum_lower_left);
+                lower_l += _mm_cvtss_f32(sum_lower_left);
+
+                __m128 sum_lower_right = _mm_hadd_ps(lower_right_low, lower_right_high);
+                sum_lower_right = _mm_hadd_ps(sum_lower_right, sum_lower_right);
+                lower_r += _mm_cvtss_f32(sum_lower_right);
+            }
+            //Handle remainder
+            for(; xr <= radius; ++xr){
                 //Edge handling => nearest valid pixel
                 int lcx = left.clamp_x(x + xr);
-                int rcx = right.clamp_x(x - disparity + xr);
+                int rcx = right.clamp_x(rx + xr);
                 //Calculate difference
                 float l_diff = lpixels[cy + lcx] - lmean;
                 float r_diff = rpixels[cy + rcx] - rmean;
@@ -161,8 +341,8 @@ namespace mp_course::cpu_workloads::phase_4{
                 lower_l += (l_diff * l_diff);
                 lower_r += (r_diff * r_diff);
             }
-        }
 
+        }
         float divider = sqrt(lower_l) * sqrt(lower_r);
         if(divider != 0){
             return upper / divider;
@@ -181,12 +361,12 @@ namespace mp_course::cpu_workloads::phase_4{
                 float max_zncc = -1.f; 
                 uint8_t zncc_max_disparity = 0;
                 //Calculate Left mean
-                float left_mean = calculate_window_mean(x, y, window_radius, left);
+                float left_mean = calculate_window_mean_sse_128(x, y, window_radius, left);
                 //Right window x coordinate: x - disparity
                 for(int d = min_disparity, rx = x - min_disparity; d <= max_disparity; ++d, rx--){
                     //Right mean into, zncc calculation
-                    float right_mean = calculate_window_mean(rx, y, window_radius, right);
-                    float zncc = calculate_zncc(x, y, window_radius, d, left_mean, right_mean, left, right);
+                    float right_mean = calculate_window_mean_sse_128(rx, y, window_radius, right);
+                    float zncc = calculate_zncc_sse_128(x, y, window_radius, d, left_mean, right_mean, left, right);
                     //See if we have new highscore for zncc
                     if(zncc > max_zncc){
                         max_zncc = zncc;

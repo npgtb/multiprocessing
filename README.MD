@@ -7,6 +7,7 @@ This module depends on the [SDL3](https://github.com/libsdl-org/SDL) and [SDL3_I
 This module depends on the opencl project, specifically the 3.0 version.
 ## Building
 The ```CMakePresets.json``` provides a release preset for building with ```Ninja``` build system.
+```phase_3_vectorized.cc``` utilizes ```__builtin_cpu_supports``` which is supported by gcc and clang.
 ```
 cmake --preset release
 cmake --build --preset release
@@ -29,7 +30,9 @@ official bindings for C++, but i figured this was a better way to learn.
 Contains the code for the work to be done on the cpu in phases 2, 3 and 4.
 - ```phase_2.cc```: matrix addition on cpu
 - ```phase_3.cc```: single threaded zncc
+- ```phase_3_vectorized.cc```: single threaded zncc, utilizing the SSE and AVX extensions for vectorization
 - ```phase_4.cc```: multithreaded zncc via threadpool
+- ```phase_4_vectorized.cc```: multithreaded zncc via threadpool, utilizing the SSE and AVX extensions for vectorization
 ### ```app/*/opencl_workloads```
 Contains the code for work to be done via opencl in phase 1,2,5,6 and 7.
 - ```phase_1.cc```: opencl hello world

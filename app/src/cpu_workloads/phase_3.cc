@@ -66,62 +66,54 @@ namespace mp_course::cpu_workloads::phase_3{
 
     //Calculates mean from the window in the given image. Expects grayscale image
     float calculate_window_mean(int x, int y, int radius, Image& image){
-        if(image.format == ImageFormat::GRAY){
-            uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
-            int window_size = (radius * 2 + 1);
-            if(window_size > 0){
-                int count = window_size * window_size;
-                float sum = 0;
-                for(int yr = -radius; yr <= radius; ++yr){
-                    for(int xr = -radius; xr <= radius; ++xr){
-                        //Edge handling => nearest valid pixel
-                        int cx = image.clamp_x(x + xr);
-                        int cy = image.clamp_y(y + yr);
-                        sum += pixels[cy * image.w + cx];
-                    }
-                }
-                return sum / count;
+        uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
+        int window_size = (radius * 2 + 1);
+        int count = window_size * window_size;
+        float sum = 0;
+        for(int yr = -radius; yr <= radius; ++yr){
+            int cy = image.clamp_y(y + yr) * image.w;
+            for(int xr = -radius; xr <= radius; ++xr){
+                //Edge handling => nearest valid pixel
+                int cx = image.clamp_x(x + xr);
+                sum += pixels[cy + cx];
             }
         }
-        return 0.f;
+        return sum / count;
     }
 
     //Calculates the ZNCC trough upper and lower sums. Expects grayscaled images
     float calculate_zncc(int x, int y, int radius, int disparity, float lmean, float rmean, Image& left, Image& right){
-        if(left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY){
-            uint8_t* lpixels = static_cast<uint8_t*>(left.pixels);
-            uint8_t* rpixels = static_cast<uint8_t*>(right.pixels);
-            float upper = 0.f;
-            float lower_l = 0.f, lower_r = 0.f;
-            for(int yr = -radius; yr <= radius; ++yr){
-                for(int xr = -radius; xr <= radius; ++xr){
-                    //Edge handling => nearest valid pixel
-                    int lcx = left.clamp_x(x + xr);
-                    int lcy = left.clamp_y(y + yr);
-                    int rcx = right.clamp_x(x - disparity + xr);
-                    int rcy = right.clamp_y(y + yr);
-                    //Calculate difference
-                    float l_diff = lpixels[lcy * left.w + lcx] - lmean;
-                    float r_diff = rpixels[rcy * right.w + rcx] - rmean;
-                    //Adjust upper and lower sums
-                    upper += l_diff * r_diff;
-                    lower_l += (l_diff * l_diff);
-                    lower_r += (r_diff * r_diff);
-                }
-            }
-
-            float divider = sqrt(lower_l) * sqrt(lower_r);
-            if(divider != 0){
-                return upper / divider;
+        uint8_t* lpixels = static_cast<uint8_t*>(left.pixels);
+        uint8_t* rpixels = static_cast<uint8_t*>(right.pixels);
+        float upper = 0.f;
+        float lower_l = 0.f, lower_r = 0.f;
+        for(int yr = -radius; yr <= radius; ++yr){
+            int cy = left.clamp_y(y + yr) * left.w;
+            for(int xr = -radius; xr <= radius; ++xr){
+                //Edge handling => nearest valid pixel
+                int lcx = left.clamp_x(x + xr);
+                int rcx = right.clamp_x(x - disparity + xr);
+                //Calculate difference
+                float l_diff = lpixels[cy + lcx] - lmean;
+                float r_diff = rpixels[cy + rcx] - rmean;
+                //Adjust upper and lower sums
+                upper += l_diff * r_diff;
+                lower_l += (l_diff * l_diff);
+                lower_r += (r_diff * r_diff);
             }
         }
-        return 0;
+
+        float divider = sqrt(lower_l) * sqrt(lower_r);
+        if(divider != 0){
+            return upper / divider;
+        }
+        return 0.f;
     }
 
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
-    bool calculate_disparity_map(const int window_radius, const int min_disparity, const int max_disparity, Image& left, Image& right, Image& map){
-        if(left.w == right.w && left.h == right.h){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::calculate_disparity_map");
+    bool calculate_disparity_map(const int window_radius, const int min_disparity, const int max_disparity, Image& left, Image& right, Image& map, std::string scope_tag){
+        if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
+            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
             map.free_memory();
             map.w = left.w; map.h = left.h;
@@ -165,11 +157,11 @@ namespace mp_course::cpu_workloads::phase_3{
             std::array<int, 256> histogram = {};
             //Count the values with in the buckets
             for(int yr = -radius; yr <= radius; ++yr){
+                int cy = image.clamp_y(y + yr) * image.w;
                 for(int xr = -radius; xr <= radius; ++xr){
                     //Edge handling => nearest valid pixel
                     int cx = image.clamp_x(x + xr);
-                    int cy = image.clamp_y(y + yr);
-                    uint8_t pixel_value = pixels[cy * image.w + cx];
+                    uint8_t pixel_value = pixels[cy + cx];
                     if(pixel_value > 0){
                         histogram[pixel_value]++;
                         count++;

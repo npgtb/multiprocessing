@@ -26,7 +26,9 @@ namespace mp_course{
         mp_course::ThreadPool& thread_pool
     ){
         cpu_workloads::run_zncc_single_thread_workload(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count);
+        cpu_workloads::run_zncc_single_thread_workload_vectorized(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count);
         cpu_workloads::run_zncc_multi_thread_workload(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count, thread_pool);
+        cpu_workloads::run_zncc_multi_thread_workload_vectorized(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count, thread_pool);
         gpu_workloads::run_zncc_pipeline_workload(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count);
         gpu_workloads::run_zncc_optimized_pipeline_a_workload(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count);
         gpu_workloads::run_zncc_optimized_pipeline_b_workload(stereo_left, stereo_right, resize_factor, window_size, min_disparity, max_disparity, cross_check_threshold, sample_count);

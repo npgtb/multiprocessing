@@ -1,10 +1,11 @@
-#ifndef MP_COURSE_CPU_WORKLOADS_PHASE_3_H
-#define MP_COURSE_CPU_WORKLOADS_PHASE_3_H
+#ifndef MP_COURSE_CPU_WORKLOADS_PHASE_3_VECTORIZED_H
+#define MP_COURSE_CPU_WORKLOADS_PHASE_3_VECTORIZED_H
 
 #include <string>
 #include <image.h>
 
-namespace mp_course::cpu_workloads::phase_3{
+
+namespace mp_course::cpu_workloads::phase_3_vectorized{
 
     //Resize the image by factor. Takes the nth row and column approach. Expects a RGBA format image.
     bool resize_image(Image& image, const int factor);

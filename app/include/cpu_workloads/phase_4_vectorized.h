@@ -1,11 +1,11 @@
-#ifndef MP_COURSE_CPU_WORKLOADS_PHASE_4_H
-#define MP_COURSE_CPU_WORKLOADS_PHASE_4_H
+#ifndef MP_COURSE_CPU_WORKLOADS_PHASE_4_VECTORIZED_H
+#define MP_COURSE_CPU_WORKLOADS_PHASE_4_VECTORIZED_H
 
 #include <string>
 #include <image.h>
 #include <thread_pool.h>
 
-namespace mp_course::cpu_workloads::phase_4{
+namespace mp_course::cpu_workloads::phase_4_vectorized{
 
     //Resize the image by factor. Takes the nth row and column approach. Expects a RGBA format image.
     bool resize_image(Image& image, const int factor, ThreadPool& thread_pool);

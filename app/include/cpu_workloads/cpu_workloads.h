@@ -15,8 +15,20 @@ namespace mp_course::cpu_workloads{
         const int min_disparity, const int max_disparity, const int cross_check_threshold, const int sample_count
     );
 
+    //Run the zncc in a single thread enviroment
+    void run_zncc_single_thread_workload_vectorized(    
+        const std::string& stereo_left, const std::string& stereo_right, const int resize_factor, const int window_size,
+        const int min_disparity, const int max_disparity, const int cross_check_threshold, const int sample_count
+    );
+
     //Run the zncc in a multi thread enviroment workload
     void run_zncc_multi_thread_workload(
+        const std::string& stereo_left, const std::string& stereo_right, const int resize_factor, const int window_size,
+        const int min_disparity, const int max_disparity, const int cross_check_threshold, const int sample_count, ThreadPool& thread_pool
+    );
+
+    //Run the zncc in a multi thread enviroment workload
+    void run_zncc_multi_thread_workload_vectorized(
         const std::string& stereo_left, const std::string& stereo_right, const int resize_factor, const int window_size,
         const int min_disparity, const int max_disparity, const int cross_check_threshold, const int sample_count, ThreadPool& thread_pool
     );

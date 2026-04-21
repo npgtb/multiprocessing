@@ -11,7 +11,9 @@ add_executable(${THIS}
     src/cpu_workloads/cpu_workloads.cc
     src/cpu_workloads/phase_2.cc
     src/cpu_workloads/phase_3.cc
+    src/cpu_workloads/phase_3_vectorized.cc
     src/cpu_workloads/phase_4.cc
+    src/cpu_workloads/phase_4_vectorized.cc
 
     src/opencl_workloads/opencl_workloads.cc
     src/opencl_workloads/phase_1.cc
@@ -21,6 +23,7 @@ add_executable(${THIS}
     src/opencl_workloads/phase_6_vectorized.cc
     src/opencl_workloads/phase_6_image2d_t.cc
 )
+target_compile_options(${THIS} PRIVATE -march=native)
 target_include_directories(${THIS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
