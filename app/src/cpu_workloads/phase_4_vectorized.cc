@@ -78,6 +78,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         }
         return false;
     }
+    
 #if defined(__SSE4_1__)
     //Grayscale function utilizing the SSE 128 wide registers
     void grayscale_image_sse_128_work_chunk(uint32_t* rgba_pixels, uint8_t* grayscaled_pixels, const int chunk_start, const int chunk_end){
@@ -197,19 +198,19 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
             uint8_t * grayscaled_pixels = static_cast<uint8_t*>(malloc(memory_size * sizeof(uint8_t)));
             if(grayscaled_pixels){
                 uint32_t * rgba_pixels = static_cast<uint32_t*>(image.pixels);
-                #if defined(__AVX512F__)
+    #if defined(__AVX512F__)
                 queue_linear_work(
                     thread_pool, memory_size, grayscale_image_avx_512_work_chunk,
                     rgba_pixels, grayscaled_pixels
                 );
-                #elif defined(__SSE4_1__)
+    #elif defined(__SSE4_1__)
                 queue_linear_work(
                     thread_pool, memory_size, grayscale_image_sse_128_work_chunk,
                     rgba_pixels, grayscaled_pixels
                 );
-                #else
+    #else
                     return false;
-                #endif
+    #endif
                 //Wait for work to finish
                 thread_pool.wait_for_work();
                 rgba_pixels = nullptr;
@@ -261,14 +262,13 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
     }
 
     //Calculates the ZNCC trough upper and lower sums. Expects grayscaled images
-    float calculate_zncc_sse_128(int x, int y, int radius, int disparity, float lmean, float rmean, Image& left, Image& right){
+    float calculate_zncc_sse_128(int x, int rx, int y, int radius, float lmean, float rmean, Image& left, Image& right){
         uint8_t* lpixels = static_cast<uint8_t*>(left.pixels);
         uint8_t* rpixels = static_cast<uint8_t*>(right.pixels);
         float upper = 0.f;
         float lower_l = 0.f, lower_r = 0.f;
         int window_size = ((radius *2) + 1);
         constexpr int load_size = 8;
-        const int rx = x - disparity; 
         __m128i zero = _mm_setzero_si128();
         __m128 left_mean_128 = _mm_set1_ps(lmean);
         __m128 right_mean_128 = _mm_set1_ps(rmean);
@@ -352,11 +352,16 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         return 0.f;
     }
 #endif
+
     //Chunk processor for calculate_disparity_map
     void calculate_disparity_map_work_chunk(
-        int window_radius, int min_disparity, int max_disparity, Image& left, Image& right, Image& map, const int chunk_start, const int chunk_end
+        int window_radius, int min_disparity, int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, const int chunk_start, const int chunk_end
     ){
-        #if defined(__SSE4_1__)
+    #if defined(__SSE4_1__)
+        int disparity_direction = 1;
+        if(left_to_right){
+            disparity_direction = -1;
+        }
         uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
         //Calculate ZNCC
         for(int y = chunk_start; y < chunk_end; ++y){
@@ -366,10 +371,11 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 //Calculate Left mean
                 float left_mean = calculate_window_mean_sse_128(x, y, window_radius, left);
                 //Right window x coordinate: x - disparity
-                for(int d = min_disparity, rx = x - min_disparity; d <= max_disparity; ++d, rx--){
+                for(int d = min_disparity; d <= max_disparity; ++d){
+                    int rx = x + (d * disparity_direction);
                     //Right mean into, zncc calculation
                     float right_mean = calculate_window_mean_sse_128(rx, y, window_radius, right);
-                    float zncc = calculate_zncc_sse_128(x, y, window_radius, d, left_mean, right_mean, left, right);
+                    float zncc = calculate_zncc_sse_128(x, rx, y, window_radius, left_mean, right_mean, left, right);
                     //See if we have new highscore for zncc
                     if(zncc > max_zncc){
                         max_zncc = zncc;
@@ -379,11 +385,11 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 disparity_map_pixels[y * map.w + x] = zncc_max_disparity;
             }
         }
-        #endif
+    #endif
     }
 
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
-    bool calculate_disparity_map(int window_radius, int min_disparity, int max_disparity, Image& left, Image& right, Image& map, ThreadPool& thread_pool, std::string scope_tag){
+    bool calculate_disparity_map(int window_radius, int min_disparity, int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, ThreadPool& thread_pool, std::string scope_tag){
         if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
             mp_course::ScopeTimer exec_timer("mp_course::zncc_c_multi_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
@@ -396,7 +402,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
                 //Threading strat => Split the work into Chunks of X rows.
                 queue_linear_work(
                     thread_pool, left.h, calculate_disparity_map_work_chunk,
-                    window_radius, min_disparity, max_disparity, std::ref(left), std::ref(right), std::ref(map)
+                    window_radius, min_disparity, max_disparity, left_to_right, std::ref(left), std::ref(right), std::ref(map)
                 );
                 //Wait for work to finish
                 thread_pool.wait_for_work();
@@ -416,7 +422,7 @@ namespace mp_course::cpu_workloads::phase_4_vectorized{
         return 255.f * (value - min_disparity) / (max_disparity - min_disparity); 
     }
 
-    //Calculate medium value using histogram
+    //Calculate middle value using histogram
     uint8_t calculate_window_non_zero_middle(int x, int y, int radius, Image& image){
         //Assume grayscale
         uint8_t* pixels = static_cast<uint8_t*>(image.pixels);

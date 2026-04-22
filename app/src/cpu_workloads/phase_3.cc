@@ -82,7 +82,7 @@ namespace mp_course::cpu_workloads::phase_3{
     }
 
     //Calculates the ZNCC trough upper and lower sums. Expects grayscaled images
-    float calculate_zncc(int x, int y, int radius, int disparity, float lmean, float rmean, Image& left, Image& right){
+    float calculate_zncc(int x, int rx, int y, int radius, float lmean, float rmean, Image& left, Image& right){
         uint8_t* lpixels = static_cast<uint8_t*>(left.pixels);
         uint8_t* rpixels = static_cast<uint8_t*>(right.pixels);
         float upper = 0.f;
@@ -92,7 +92,7 @@ namespace mp_course::cpu_workloads::phase_3{
             for(int xr = -radius; xr <= radius; ++xr){
                 //Edge handling => nearest valid pixel
                 int lcx = left.clamp_x(x + xr);
-                int rcx = right.clamp_x(x - disparity + xr);
+                int rcx = right.clamp_x(rx + xr);
                 //Calculate difference
                 float l_diff = lpixels[cy + lcx] - lmean;
                 float r_diff = rpixels[cy + rcx] - rmean;
@@ -111,7 +111,7 @@ namespace mp_course::cpu_workloads::phase_3{
     }
 
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
-    bool calculate_disparity_map(const int window_radius, const int min_disparity, const int max_disparity, Image& left, Image& right, Image& map, std::string scope_tag){
+    bool calculate_disparity_map(const int window_radius, const int min_disparity, const int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, std::string scope_tag){
         if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
             mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
@@ -121,6 +121,10 @@ namespace mp_course::cpu_workloads::phase_3{
             map.pixels = malloc(map.w * map.h);
             if(map.pixels){
                 uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
+                int disparity_direction = 1;
+                if(left_to_right){
+                    disparity_direction = -1;
+                }
                 //Calculate ZNCC
                 for(int y = 0; y < left.h; ++y){
                     for(int x = 0; x < left.w; ++x){
@@ -129,10 +133,10 @@ namespace mp_course::cpu_workloads::phase_3{
                         //Calculate Left mean
                         float left_mean = calculate_window_mean(x, y, window_radius, left);
                         //Right window x coordinate: x - disparity
-                        for(int d = min_disparity, rx = x - min_disparity; d <= max_disparity; ++d, rx--){
-                            //Right mean into, zncc calculation
+                        for(int d = min_disparity; d <= max_disparity; ++d){
+                            int rx = x + (d * disparity_direction);
                             float right_mean = calculate_window_mean(rx, y, window_radius, right);
-                            float zncc = calculate_zncc(x, y, window_radius, d, left_mean, right_mean, left, right);
+                            float zncc = calculate_zncc(x, rx, y, window_radius, left_mean, right_mean, left, right);
                             //See if we have new highscore for zncc
                             if(zncc > max_zncc){
                                 max_zncc = zncc;
@@ -148,7 +152,7 @@ namespace mp_course::cpu_workloads::phase_3{
         return false;
     }
 
-    //Calculate medium value using histogram
+    //Calculate middle value using histogram
     uint8_t calculate_window_non_zero_middle(int x, int y, int radius, Image& image){
         //Assume grayscale
         uint8_t* pixels = static_cast<uint8_t*>(image.pixels);

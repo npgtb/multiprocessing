@@ -89,6 +89,18 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         return runtime.context->create_images(images, descriptions);
     }
 
+    //Bind arguments to the kernel
+    cl_int bind_args(std::shared_ptr<clw::Kernel> kernel, std::vector<std::pair<int, int>> args){
+        cl_int error_code = CL_SUCCESS;
+        //Bind the arguments
+        for(auto& index_arg_pair : args){
+            if((error_code = kernel->bind_arg<int>(index_arg_pair.first, index_arg_pair.second, sizeof(int))) != CL_SUCCESS){
+                return error_code;
+            }
+        }
+        return CL_SUCCESS;
+    }
+
     //Binds the constant arguments of the pipeline
     cl_int bind_pipeline_args(
         OpenCLRuntime& runtime, const int downscale_factor, const int window_radius, 
@@ -122,10 +134,8 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         cl_int error_code = CL_SUCCESS;
         //Bind the arguments
         for(auto& kernel_arg_pair : kernel_binds){
-            for(auto& index_arg_pair : kernel_arg_pair.second){
-                if((error_code = kernel_arg_pair.first->bind_arg<int>(index_arg_pair.first, index_arg_pair.second, sizeof(int))) != CL_SUCCESS){
-                    return error_code;
-                }
+            if((error_code = bind_args(kernel_arg_pair.first, kernel_arg_pair.second)) != CL_SUCCESS){
+                return error_code;
             }
         }
         return CL_SUCCESS;
@@ -146,9 +156,15 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
     //Queue work into the command queueu based ont he given argumentation
     clw::ErrorOr<std::shared_ptr<clw::Event>> queue_work(
         OpenCLRuntime& runtime, std::shared_ptr<clw::Kernel> kernel, size_t work_dimensions, size_t * global_work_size, size_t * local_size,
-        std::vector<std::shared_ptr<clw::Event>> conditions, std::vector<std::pair<int, std::reference_wrapper<clw::Image>>> bind_data
+        std::vector<std::shared_ptr<clw::Event>> conditions, std::vector<std::pair<int, std::reference_wrapper<clw::Image>>> bind_data,
+        std::vector<std::pair<int, int>> args
     ){
         cl_int error_code = CL_SUCCESS;
+        //Bind arguments
+        if ((error_code = bind_args(kernel, args)) != CL_SUCCESS) {
+            return error_code;
+        }
+        //Bind images
         if ((error_code = bind_images(kernel, bind_data)) != CL_SUCCESS) {
             return error_code;
         }
@@ -213,8 +229,8 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         //Queue the downscale action on both images
         size_t  split_work_dimensions[2] = {downscaled_width, downscaled_height};
 
-        clw::ErrorOr<std::shared_ptr<clw::Event>> left_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {left_write.value()}, {{0,images[0]}, {1,images[2]}});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> right_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {right_write.value()}, {{0,images[1]}, {1,images[3]}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {left_write.value()}, {{0,images[0]}, {1,images[2]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {right_write.value()}, {{0,images[1]}, {1,images[3]}}, {});
         //Queueing was succesful?
         if(!left_resize.ok()){
             Profiler::add_info("Left image downscale queueing failed: " + std::to_string(left_resize.error()));
@@ -226,8 +242,8 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         }
 
         //Queue the grayscale action on both images
-        clw::ErrorOr<std::shared_ptr<clw::Event>> left_grayscale = queue_work(runtime, grayscale_kernel, 2, split_work_dimensions, nullptr, {left_resize.value()}, {{0,images[2]}, {1,images[4]}});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> right_grayscale = queue_work(runtime, grayscale_kernel, 2, split_work_dimensions, nullptr, {right_resize.value()}, {{0,images[3]}, {1,images[5]}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_grayscale = queue_work(runtime, grayscale_kernel, 2, split_work_dimensions, nullptr, {left_resize.value()}, {{0,images[2]}, {1,images[4]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_grayscale = queue_work(runtime, grayscale_kernel, 2, split_work_dimensions, nullptr, {right_resize.value()}, {{0,images[3]}, {1,images[5]}}, {});
         if(!left_grayscale.ok()){
             Profiler::add_info("Left image grayscaling queueing failed: " + std::to_string(left_grayscale.error()));
             return left_grayscale.error();
@@ -238,8 +254,8 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         }
 
         //Recombine the split pipelines together for the zncc
-        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_left = queue_work(runtime, zncc_kernel, 2, split_work_dimensions, nullptr, {left_grayscale.value(), right_grayscale.value()}, {{0,images[4]}, {1,images[5]}, {2, images[6]}});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_right = queue_work(runtime, zncc_kernel, 2, split_work_dimensions, nullptr, {left_grayscale.value(), right_grayscale.value()}, {{0,images[5]}, {1,images[4]}, {2, images[7]}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_left = queue_work(runtime, zncc_kernel, 2, split_work_dimensions, nullptr, {left_grayscale.value(), right_grayscale.value()}, {{0,images[4]}, {1,images[5]}, {2, images[6]}}, {{6, -1}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_right = queue_work(runtime, zncc_kernel, 2, split_work_dimensions, nullptr, {left_grayscale.value(), right_grayscale.value()}, {{0,images[5]}, {1,images[4]}, {2, images[7]}}, {{6, 1}});
         if(!zncc_left.ok()){
             Profiler::add_info("Left Zncc queueing failed: " + std::to_string(zncc_left.error()));
             return zncc_left.error();
@@ -250,7 +266,7 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         }
 
         //Queue the post process
-        clw::ErrorOr<std::shared_ptr<clw::Event>> post_process = queue_work(runtime, postprocess_kernel, 2, split_work_dimensions, nullptr, {zncc_left.value(), zncc_right.value()}, {{0,images[6]}, {1,images[7]}, {2, images[8]}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> post_process = queue_work(runtime, postprocess_kernel, 2, split_work_dimensions, nullptr, {zncc_left.value(), zncc_right.value()}, {{0,images[6]}, {1,images[7]}, {2, images[8]}}, {});
         if(!post_process.ok()){
             Profiler::add_info("Post process queuing failed: " + std::to_string(post_process.error()));
             return post_process.error();

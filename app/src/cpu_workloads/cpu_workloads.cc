@@ -27,8 +27,8 @@ namespace mp_course::cpu_workloads{
                     //Save the preprocessed images. Calculate Dmaps from them, post process the maps
                     //left.save("single_preprocessed_left.png"); right.save("single_preprocessed_right.png");
                     if(
-                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, left, right, dmap_left, "left") &&
-                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, right, left, dmap_right, "right") &&
+                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, true, left, right, dmap_left, "left") &&
+                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, false, right, left, dmap_right, "right") &&
                         phase_3::cross_check_occulsion_disparity_maps(cross_check_threshold, window_size, min_disparity, max_disparity, dmap_left, dmap_right, pp_dmap) &&
                         i == 0
                     ){
@@ -60,8 +60,8 @@ namespace mp_course::cpu_workloads{
                     //Save the preprocessed images. Calculate Dmaps from them, post process the maps
                     //left.save("single_preprocessed_left.png"); right.save("single_preprocessed_right.png");
                     if(
-                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, left, right, dmap_left, "left") &&
-                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, right, left, dmap_right, "right") &&
+                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, true, left, right, dmap_left, "left") &&
+                        phase_3::calculate_disparity_map(window_size, min_disparity, max_disparity, false, right, left, dmap_right, "right") &&
                         phase_3::cross_check_occulsion_disparity_maps(cross_check_threshold, window_size, min_disparity, max_disparity, dmap_left, dmap_right, pp_dmap) &&
                         i == 0
                     ){
@@ -93,8 +93,8 @@ namespace mp_course::cpu_workloads{
                     //Save the preprocessed images. Calculate Dmaps from them, post process the maps
                     //left.save("multi_preprocessed_left.png"); right.save("multi_preprocessed_right.png");
                     if(
-                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, left, right, dmap_left, thread_pool, "left") &&
-                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, right, left, dmap_right, thread_pool, "right") &&
+                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, true, left, right, dmap_left, thread_pool, "left") &&
+                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, false, right, left, dmap_right, thread_pool, "right") &&
                         phase_4::cross_check_occulsion_disparity_maps(cross_check_threshold, window_size, min_disparity, max_disparity, dmap_left, dmap_right, pp_dmap, thread_pool) &&
                         i == 0
                     ){
@@ -126,8 +126,8 @@ namespace mp_course::cpu_workloads{
                     //Save the preprocessed images. Calculate Dmaps from them, post process the maps
                     //left.save("multi_preprocessed_left.png"); right.save("multi_preprocessed_right.png");
                     if(
-                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, left, right, dmap_left, thread_pool, "left") &&
-                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, right, left, dmap_right, thread_pool, "right") &&
+                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, true, left, right, dmap_left, thread_pool, "left") &&
+                        phase_4::calculate_disparity_map(window_size, min_disparity, max_disparity, false, right, left, dmap_right, thread_pool, "right") &&
                         phase_4::cross_check_occulsion_disparity_maps(cross_check_threshold, window_size, min_disparity, max_disparity, dmap_left, dmap_right, pp_dmap, thread_pool) &&
                         i == 0
                     ){

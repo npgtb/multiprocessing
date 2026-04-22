@@ -21,16 +21,16 @@ inline float calculate_window_mean(int x, int y, int radius, __local uchar* pixe
     int window_size = (radius << 1) + 1;
     int vectorized_end = (window_size & ~3);
     float sum = 0;
+    //Go trough the window
     for(int yr = -radius; yr <= radius; ++yr){
         int xr = -radius;
         __local uchar * pixel = &pixels[((y + yr) * width) + (x - radius)];
-        //Vectorized handling when possible
+        //Handle 4 pixels at time
         for(int i = 0; i < vectorized_end; xr += 4, i += 4, pixel += 4){
-            //Load 4 values at one time
-            uchar4 pixel_vector = vload4(0, pixel);
+            uchar4 pixel_vector = vload(0, pixel);
             sum += pixel_vector.x + pixel_vector.y + pixel_vector.z + pixel_vector.w;
         }
-        //#pragma unroll, slowed things down
+        //Handle the remainder
         for(; xr <= radius; ++xr){
             sum += *pixel++;
         }
@@ -52,18 +52,19 @@ inline float calculate_zncc(
         __local uchar * left_pixel = &left[((ly + yr) * left_width) + (lx - radius)];
         __local uchar * right_pixel = &right[((ly + yr) * right_width) + (lxr - radius)];
         int xr = -radius;
+        //Handle 4 pixels at one time
         for(int i = 0; i < vectorized_end; xr += 4, i += 4, left_pixel += 4, right_pixel += 4){
-            //Calculate difference
+            //Normalize brightness with means
             float4 left_pixel_vector = convert_float4(vload4(0, left_pixel)) - lmean4;
             float4 right_pixel_vector = convert_float4(vload4(0, right_pixel)) - rmean4;
-
+            //Adjust upper and lower sums
             upper += dot(left_pixel_vector, right_pixel_vector);
             lower_l += dot(left_pixel_vector, left_pixel_vector);
             lower_r += dot(right_pixel_vector, right_pixel_vector);
         }
-        //#pragma unroll, slowed things down
+        //Handle the remainder
         for(; xr <= radius; ++xr){
-            //Calculate difference
+            //Normalize brightness with means
             float l_diff = (float)(*left_pixel++) - lmean;
             float r_diff = (float)(*right_pixel++) - rmean;
             //Adjust upper and lower sums
@@ -72,8 +73,6 @@ inline float calculate_zncc(
             lower_r += (r_diff * r_diff);
         }
     }
-
-    //Get rid of the if branching
     float result = upper / (sqrt(lower_l * lower_r));
     return select(0.f, result, isfinite(result));
 }
@@ -81,27 +80,24 @@ inline float calculate_zncc(
 //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
 __kernel void calculate_disparity_map(
     __global uchar* left, __global uchar* right, __global uchar* map,
-    const int window_radius, const int min_disparity, const int max_disparity,
+    const int window_radius, const int min_disparity, const int max_disparity, const int disparity_direction,
     const int width, const int height, __local uchar * left_tile, __local uchar * right_tile
 ){
     //pull locals
     const int local_width = get_local_size(0);
     const int local_height = get_local_size(1);
 
-    //For the left image we need to pull only radius *2 pixels more
+    //Calculate tile dimensions
     const int tile_left_width = (window_radius << 1) + local_width;
-    //For right image we need to account for max disparity and pull pixels all to way to it
+    const int tile_height = (window_radius << 1) + local_height;
     const int tile_right_width = local_width +  (window_radius << 1) + (max_disparity - min_disparity);
+
     const int group_base_x = local_width * get_group_id(0);
     const int group_base_y = local_height * get_group_id(1);
-
     const int lx = get_local_id(0);
     const int ly = get_local_id(1);
 
-    //We start with local group width * height
-    //in height direction we need to pull radius * 2 pixels more
-    const int tile_height = (window_radius << 1) + local_height;
-    //We add local_height/local_width because the whole group is pulling pixels
+    //Get tiled pixels
     for(int tile_y = ly; tile_y < tile_height; tile_y += local_height){
         int image_y = clamp(group_base_y + tile_y - window_radius, 0, height - 1);
         //Load left tile
@@ -111,7 +107,12 @@ __kernel void calculate_disparity_map(
         }
         //Load right tile
         for(int tile_x = lx; tile_x < tile_right_width; tile_x += local_width){
-            int image_x = clamp(group_base_x + (tile_x - max_disparity - window_radius), 0, width - 1);
+            int shift_x = tile_x - window_radius;
+            //Depending on the d direction, we either have massive extra chunk 
+            //at the left side of the tile or its at the right side of the tile
+            shift_x -= disparity_direction == -1 ? max_disparity : 0;
+            //We shift to the left/right by disparity range + window_radius
+            int image_x = clamp(group_base_x + shift_x, 0, width - 1);
             right_tile[tile_y * tile_right_width + tile_x] = right[image_y * width + image_x];
         }
     }
@@ -121,28 +122,25 @@ __kernel void calculate_disparity_map(
 
     const int gx = get_global_id(0);
     const int gy = get_global_id(1);
-
     //Dont calculate padded pixels
     if((gx >= width || gy >= height)){
         return;
     }
-    
+    //Tiling caused offset coordinates
     const int lx_halo = lx + window_radius;
+    const int rx_halo = lx_halo + (disparity_direction == -1 ? max_disparity : 0);
     const int ly_halo = ly + window_radius;
+
     float max_zncc = -1.f; 
     uchar zncc_max_disparity = 0;
-    //Calculate Left mean
 
+    //Calculate Left mean
     float left_mean = calculate_window_mean(lx_halo, ly_halo, window_radius, left_tile, tile_left_width);
-    //Offset us in the right tile with max disparity
-    //In the tile space match us with local space
-    int lxr = lx_halo + max_disparity;
-    //Right window x coordinate: x - disparity
     for(uchar d = min_disparity; d <= max_disparity; ++d){
-        //Right mean into, zncc calculation
-        float right_mean = calculate_window_mean((lxr - d), ly_halo, window_radius, right_tile, tile_right_width);
-        float zncc = calculate_zncc(lx_halo, (lxr-d), ly_halo, window_radius, left_mean, right_mean, left_tile, right_tile, tile_left_width, tile_right_width);
-        //See if we have new highscore for zncc
+        int rx = rx_halo + (d * disparity_direction);
+        //Calculate right mean and zncc score
+        float right_mean = calculate_window_mean(rx, ly_halo, window_radius, right_tile, tile_right_width);
+        float zncc = calculate_zncc(lx_halo, rx, ly_halo, window_radius, left_mean, right_mean, left_tile, right_tile, tile_left_width, tile_right_width);
         bool better_disparity = zncc > max_zncc;
         zncc_max_disparity = better_disparity ? d : zncc_max_disparity;
         max_zncc = better_disparity ? zncc : max_zncc;
@@ -162,7 +160,7 @@ inline uchar grayscale_disparity(
 
 //Calculate middle value using histogram
 inline uchar calculate_window_sampled_middle(int x, int y, int radius, __local uchar* pixels, const int width){
-    //Sample 16 values
+    //Sample max 25 values
     uchar samples[25] = {0};
     int current_sample = 0;
     int sampling_step = max(1, radius/2);
@@ -201,32 +199,27 @@ inline uchar calculate_window_sampled_middle(int x, int y, int radius, __local u
     return 0;
 }
 
-
 //Cross-checks the two disparity maps against each other
 __kernel void cross_check_occulsion_disparity_maps(
     __global uchar* left, __global uchar* right, __global uchar* post_processed,
     int threshold_value, int window_radius, int min_disparity, int max_disparity, 
     const int width, const int height, __local uchar* left_tile, __local uchar* right_tile
 ){
-
     //pull locals
     const int local_width = get_local_size(0);
     const int local_height = get_local_size(1);
 
-    //We start with local group width * height
-    //in height direction we need to pull radius * 2 pixels more
+    //Calculate tile dimensions
     const int tile_height = (window_radius << 1) + local_height;
-    //For the left image we need to pull only radius *2 pixels more
     const int tile_left_width = (window_radius << 1) + local_width;
-    //For right image we need to account for max disparity and pull pixels all to way to it
     const int tile_right_width = local_width +  (window_radius << 1) + (max_disparity - min_disparity);
+
     const int group_base_x = local_width * get_group_id(0);
     const int group_base_y = local_height * get_group_id(1);
-
     const int lx = get_local_id(0);
     const int ly = get_local_id(1);
 
-    //We add local_height/local_width because the whole group is pulling pixels
+    //Get tiled pixels
     for(int tile_y = ly; tile_y < tile_height; tile_y += local_height){
         int image_y = clamp(group_base_y + tile_y - window_radius, 0, height - 1);
         //Load left tile
@@ -244,10 +237,8 @@ __kernel void cross_check_occulsion_disparity_maps(
     //Wait for whole group finish pulling pixel data
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    //pull globals
     const int gx = get_global_id(0);
     const int gy = get_global_id(1);
-
     //Return on padded pixel
     if((gx >= width || gy >= height)){
         return;
@@ -255,12 +246,13 @@ __kernel void cross_check_occulsion_disparity_maps(
 
     const int lx_halo = lx + window_radius;
     const int ly_halo = ly + window_radius;
+    //Get disparity values L=>R and R=>L
     uchar disparity_value_l = left_tile[ly_halo * tile_left_width + lx_halo];
-    //In the right map, we move to the left disparity_value_l mutch
     uchar disparity_value_r = right_tile[ly_halo * tile_right_width + ((lx_halo + max_disparity) - disparity_value_l)];
-    //Cross-check and occuld
+    //Cross-check and occulsion
     uchar final_value = disparity_value_l;
     if(abs(disparity_value_l - disparity_value_r) > threshold_value || final_value == 0){
+        //Get the window middle value as filler
         final_value = calculate_window_sampled_middle(lx_halo, ly_halo, window_radius, left_tile, tile_left_width);
     }
     post_processed[gy * width + gx] = grayscale_disparity(min_disparity, max_disparity, final_value);
