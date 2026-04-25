@@ -9,8 +9,7 @@
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables":{
                 "CMAKE_BUILD_TYPE": "Debug",
-                "ENABLE_ASANLEAK": "OFF",
-                "DISABLE_AVX512": "OFF"
+                "ENABLE_ASANLEAK": "OFF"
             }
         },
         {
@@ -21,8 +20,7 @@
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables":{
                 "CMAKE_BUILD_TYPE": "Release",
-                "ENABLE_ASANLEAK": "OFF",
-                "DISABLE_AVX512": "OFF"
+                "ENABLE_ASANLEAK": "OFF"
             }
         },
         {
@@ -33,20 +31,7 @@
             "binaryDir": "${sourceDir}/build/asanleak",
             "cacheVariables":{
                 "CMAKE_BUILD_TYPE": "Debug",
-                "ENABLE_ASANLEAK": "ON",
-                "DISABLE_AVX512": "OFF"
-            }
-        },
-        {
-            "name": "valgrind",
-            "hidden": false,
-            "description": "Debug build with no avx512 instructions",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/valgrind",
-            "cacheVariables":{
-                "CMAKE_BUILD_TYPE": "Debug",
-                "ENABLE_ASANLEAK": "OFF",
-                "DISABLE_AVX512": "ON"
+                "ENABLE_ASANLEAK": "ON"
             }
         }
     ],
@@ -62,10 +47,6 @@
         {
             "name":"asanleak",
             "configurePreset":"asanleak"
-        },
-        {
-            "name":"valgrind",
-            "configurePreset":"valgrind"
         }
     ]
 }

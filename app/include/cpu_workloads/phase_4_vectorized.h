@@ -5,10 +5,10 @@
 #include <image.h>
 #include <thread_pool.h>
 
-namespace mp_course::cpu_workloads::phase_4_vectorized{
+namespace mp::cpu_workloads::phase_4_vectorized{
 
     //Resize the image by factor. Takes the nth row and column approach. Expects a RGBA format image.
-    bool resize_image(Image& image, const int factor, ThreadPool& thread_pool);
+    bool resize_image(Image& input, Image& output, const int factor, ThreadPool& thread_pool);
 
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image, ThreadPool& thread_pool);

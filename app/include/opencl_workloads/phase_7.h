@@ -1,10 +1,10 @@
-#ifndef MP_COURSE_OPENCL_WORKLOADS_PHASE_6_IMAGE_2D_T
-#define MP_COURSE_OPENCL_WORKLOADS_PHASE_6_IMAGE_2D_T
+#ifndef MP_COURSE_OPENCL_WORKLOADS_PHASE_7
+#define MP_COURSE_OPENCL_WORKLOADS_PHASE_7
 
 #include <image.h>
 #include <opencl_runtime.h>
 
-namespace mp::gpu_workloads::phase_6_image2d_t{
+namespace mp::gpu_workloads::phase_7{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime);

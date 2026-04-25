@@ -1,7 +1,7 @@
 #include <string>
 #include <drawkit/high_performance_timer.h>
 
-namespace mp_course{
+namespace mp{
     class ScopeTimer{
         public:
             //Start timing

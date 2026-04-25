@@ -3,7 +3,7 @@
 
 #include <image.h>
 
-namespace mp_course::gpu_workloads{
+namespace mp::gpu_workloads{
     //Runs the opencl hello world program
     void run_hello_world_workload();
 
@@ -33,6 +33,12 @@ namespace mp_course::gpu_workloads{
 
     //Runs the opencl Zncc Pipeline
     void run_zncc_optimized_pipeline_c_workload(
+        const std::string &stereo_left, const std::string &stereo_right, const int downscale_factor, const int window_radius, 
+        const int min_disparity, const int max_disparity, const int threshold_value, const int sample_count
+    );
+
+    //Runs the opencl Zncc Pipeline
+    void run_zncc_optimized_integral_pipeline_workload(
         const std::string &stereo_left, const std::string &stereo_right, const int downscale_factor, const int window_radius, 
         const int min_disparity, const int max_disparity, const int threshold_value, const int sample_count
     );

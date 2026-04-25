@@ -1,7 +1,7 @@
 #include <profiler.h>
 #include <scope_timer.h>
 
-namespace mp_course{
+namespace mp{
     //Start timing
     ScopeTimer::ScopeTimer(const std::string& label):label_(label){
         Profiler::scope_start(label);

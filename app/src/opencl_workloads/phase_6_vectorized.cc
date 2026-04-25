@@ -3,7 +3,7 @@
 #include <scope_timer.h>
 #include <opencl_workloads/phase_6_vectorized.h>
 
-namespace mp_course::gpu_workloads::phase_6_vectorized{
+namespace mp::gpu_workloads::phase_6_vectorized{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime){
@@ -21,37 +21,37 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         OpenCLRuntime& runtime, std::vector<clw::Buffer>& buffers, const size_t image_width, const size_t image_height,
         const size_t downscale_factor, const size_t group_width, const size_t group_height
     ){
-        const size_t downscaled_width = image_width / downscale_factor;
-        const size_t downscaled_height = image_height / downscale_factor;
-        const size_t downscaled_width_padded = downscaled_width + ((group_width - (downscaled_width % group_width)) % group_width);
-        const size_t downscaled_height_padded = downscaled_height + ((group_height - (downscaled_height % group_height)) % group_height);
-        const size_t image_size = image_width * image_height;
-        const size_t image_byte_size = image_size * sizeof(uint32_t);
+        const size_t scaled_w = image_width / downscale_factor;
+        const size_t scaled_h = image_height / downscale_factor;
+        const size_t scaled_w_padded = scaled_w + ((group_width - (scaled_w % group_width)) % group_width);
+        const size_t scaled_h_padded = scaled_h + ((group_height - (scaled_h % group_height)) % group_height);
+        const size_t original_size = image_width * image_height;
+        const size_t original_bsize = original_size * sizeof(uint32_t);
         
-        const size_t downscaled_image_size = downscaled_width * downscaled_height;
-        const size_t downscaled_image_size_padded = downscaled_width_padded * downscaled_height_padded;
-        const size_t downscaled_byte_size = downscaled_image_size * sizeof(uint32_t);
+        const size_t scaled_bsize = scaled_w * scaled_h;
+        const size_t scaled_bsize_padded = scaled_w_padded * scaled_h_padded;
+        const size_t downscaled_byte_size = scaled_bsize * sizeof(uint32_t);
 
         //Buffer descriptions
         std::vector<clw::BufferDescription> descriptions = {
             //Two Initial buffers for the original images
-            {CL_MEM_READ_ONLY, image_byte_size},
-            {CL_MEM_READ_ONLY, image_byte_size},
+            {CL_MEM_READ_ONLY, original_bsize},
+            {CL_MEM_READ_ONLY, original_bsize},
 
             //Two buffers for the downscaled images
             {CL_MEM_READ_WRITE, downscaled_byte_size},
             {CL_MEM_READ_WRITE, downscaled_byte_size},
 
             //Two buffers for the grayscaled images => uint8_t
-            {CL_MEM_READ_WRITE, downscaled_image_size_padded},
-            {CL_MEM_READ_WRITE, downscaled_image_size_padded},
+            {CL_MEM_READ_WRITE, scaled_bsize_padded},
+            {CL_MEM_READ_WRITE, scaled_bsize_padded},
 
             //Two buffers for the disparity maps
-            {CL_MEM_READ_WRITE, downscaled_image_size_padded},
-            {CL_MEM_READ_WRITE, downscaled_image_size_padded},
+            {CL_MEM_READ_WRITE, scaled_bsize_padded},
+            {CL_MEM_READ_WRITE, scaled_bsize_padded},
 
             //One buffer for the post processed result
-            {CL_MEM_READ_WRITE, downscaled_image_size_padded},
+            {CL_MEM_READ_WRITE, scaled_bsize_padded},
         };
         //Reserve buffer memory
         buffers.reserve(descriptions.size());
@@ -76,7 +76,7 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
     cl_int bind_pipeline_args(
         OpenCLRuntime& runtime, const int downscale_factor, const int original_width,
         const int window_radius, const int min_disparity, const int max_disparity,
-        const int threshold_value, const int downscaled_width, const int downscaled_height
+        const int threshold_value, const int scaled_w, const int scaled_h
     ){
         //Kernels
         std::shared_ptr<clw::Kernel> downscale_kernel = runtime.kernels[0];
@@ -94,13 +94,13 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         {
                 zncc_kernel, std::vector<std::pair<int,int>>{
                     {3, window_radius}, {4, min_disparity}, {5, max_disparity},
-                    {7, downscaled_width}, {8, downscaled_height}
+                    {7, scaled_w}, {8, scaled_h}
                 }
             },
         {
                 postprocess_kernel, std::vector<std::pair<int, int>>{
                     {3, threshold_value}, {4, window_radius}, {5, min_disparity},
-                    {6, max_disparity}, {7, downscaled_width}, {8, downscaled_height}
+                    {6, max_disparity}, {7, scaled_w}, {8, scaled_h}
                 }
             }
         };
@@ -201,33 +201,17 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         const size_t group_width = 16;
         const size_t group_height = 8;
 
-        const int image_size = left.h * left.w;
-        const size_t downscaled_width = left.w / downscale_factor;
-        const size_t downscaled_height = left.h / downscale_factor;
-        const size_t downscaled_width_padded = downscaled_width + ((group_width - (downscaled_width % group_width)) % group_width);
-        const size_t downscaled_height_padded = downscaled_height + ((group_height - (downscaled_height % group_height)) % group_height);
-        const size_t downscaled_image_size = downscaled_width * downscaled_height;
-        const size_t image_byte_size = image_size * sizeof(uint32_t);
+        const size_t original_size = left.h * left.w;
+        const size_t scaled_w = left.w / downscale_factor;
+        const size_t scaled_h = left.h / downscale_factor;
+        const size_t scaled_w_padded = scaled_w + ((group_width - (scaled_w % group_width)) % group_width);
+        const size_t scaled_h_padded = scaled_h + ((group_height - (scaled_h % group_height)) % group_height);
+        const size_t scaled_bsize = scaled_w * scaled_h;
+        const size_t original_bsize = original_size * sizeof(uint32_t);
 
-        size_t  global_work_dimensions[2] = {downscaled_width, downscaled_height};
-        size_t  global_work_dimensions_padded[2] = {downscaled_width_padded, downscaled_height_padded};
-        size_t  local_work_group[2] = {group_width, group_height};
-
-
-        Profiler::add_info(
-            "Global work group (" + std::to_string(downscaled_width) + "," +
-            std::to_string(downscaled_height) + ")"
-        );
-
-        Profiler::add_info(
-            "Global work group padded (" + std::to_string(downscaled_width_padded) + "," +
-            std::to_string(downscaled_height_padded) + ")"
-        );
-
-        Profiler::add_info(
-            "Local work group (" + std::to_string(group_width) + "," +
-            std::to_string(group_height) + ")"
-        );
+        size_t gwork_dim_scaled[2] = {scaled_w, scaled_h};
+        size_t gwork_dim_scaled_pad[2] = {scaled_w_padded, scaled_h_padded};
+        size_t local_work_group[2] = {group_width, group_height};
 
         //Create buffers for the pipeline and bind the pipeline
         cl_int error_code = CL_SUCCESS;
@@ -238,7 +222,7 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
                 error_code = bind_pipeline_args(
                     runtime, downscale_factor, left.w, 
                     window_radius, min_disparity, max_disparity, threshold_value,
-                    downscaled_width, downscaled_height
+                    scaled_w, scaled_h
                 )
             ) != CL_SUCCESS ||
             (error_code = allocate_local_memory(runtime, window_radius, min_disparity, max_disparity, group_width, group_height)) != CL_SUCCESS
@@ -254,8 +238,8 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[3];
 
         //First step of the pipeline queue the writes of the original images to the device memory
-        clw::ErrorOr<std::shared_ptr<clw::Event>> left_write = runtime.cc_queue->write_buffer(buffers[0], false, 0, image_byte_size, left.pixels, {});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> right_write = runtime.cc_queue->write_buffer(buffers[1], false, 0, image_byte_size, right.pixels, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_write = runtime.cc_queue->write_buffer(buffers[0], false, 0, original_bsize, left.pixels, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_write = runtime.cc_queue->write_buffer(buffers[1], false, 0, original_bsize, right.pixels, {});
         //Queue action was successful?
         if(!left_write.ok()){
             Profiler::add_info("Left image write to buffer failed: " + std::to_string(left_write.error()));
@@ -267,8 +251,8 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         }
 
         //Queue the downscale action on both images
-        clw::ErrorOr<std::shared_ptr<clw::Event>> left_resize = queue_work(runtime, downscale_kernel, 2, global_work_dimensions, nullptr, {left_write.value()}, {{0,buffers[0]}, {1,buffers[2]}}, {});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> right_resize = queue_work(runtime, downscale_kernel, 2, global_work_dimensions, nullptr, {right_write.value()}, {{0,buffers[1]}, {1,buffers[3]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_resize = queue_work(runtime, downscale_kernel, 2, gwork_dim_scaled, nullptr, {left_write.value()}, {{0,buffers[0]}, {1,buffers[2]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_resize = queue_work(runtime, downscale_kernel, 2, gwork_dim_scaled, nullptr, {right_write.value()}, {{0,buffers[1]}, {1,buffers[3]}}, {});
         //Queueing was succesful?
         if(!left_resize.ok()){
             Profiler::add_info("Left image downscale queueing failed: " + std::to_string(left_resize.error()));
@@ -280,8 +264,8 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         }
 
         //Queue the grayscale action on both images
-        clw::ErrorOr<std::shared_ptr<clw::Event>> left_grayscale = queue_work(runtime, grayscale_kernel, 2, global_work_dimensions, nullptr, {left_resize.value()}, {{0,buffers[2]}, {1,buffers[4]}}, {});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> right_grayscale = queue_work(runtime, grayscale_kernel, 2, global_work_dimensions, nullptr, {right_resize.value()}, {{0,buffers[3]}, {1,buffers[5]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_grayscale = queue_work(runtime, grayscale_kernel, 2, gwork_dim_scaled, nullptr, {left_resize.value()}, {{0,buffers[2]}, {1,buffers[4]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_grayscale = queue_work(runtime, grayscale_kernel, 2, gwork_dim_scaled, nullptr, {right_resize.value()}, {{0,buffers[3]}, {1,buffers[5]}}, {});
         if(!left_grayscale.ok()){
             Profiler::add_info("Left image grayscaling queueing failed: " + std::to_string(left_grayscale.error()));
             return left_grayscale.error();
@@ -292,8 +276,8 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         }
 
         //Recombine the split pipelines together for the zncc
-        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_left = queue_work(runtime, zncc_kernel, 2, global_work_dimensions_padded, local_work_group, {left_grayscale.value(), right_grayscale.value()}, {{0,buffers[4]}, {1,buffers[5]}, {2, buffers[6]}},{{6, -1}});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_right = queue_work(runtime, zncc_kernel, 2, global_work_dimensions_padded, local_work_group, {left_grayscale.value(), right_grayscale.value()}, {{0,buffers[5]}, {1,buffers[4]}, {2, buffers[7]}}, {{6, 1}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_left = queue_work(runtime, zncc_kernel, 2, gwork_dim_scaled_pad, local_work_group, {left_grayscale.value(), right_grayscale.value()}, {{0,buffers[4]}, {1,buffers[5]}, {2, buffers[6]}},{{6, -1}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_right = queue_work(runtime, zncc_kernel, 2, gwork_dim_scaled_pad, local_work_group, {left_grayscale.value(), right_grayscale.value()}, {{0,buffers[5]}, {1,buffers[4]}, {2, buffers[7]}}, {{6, 1}});
         if(!zncc_left.ok()){
             Profiler::add_info("Left Zncc queueing failed: " + std::to_string(zncc_left.error()));
             return zncc_left.error();
@@ -304,7 +288,7 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
         }
 
         //Queue the post process
-        clw::ErrorOr<std::shared_ptr<clw::Event>> post_process = queue_work(runtime, postprocess_kernel, 2, global_work_dimensions_padded, local_work_group, {zncc_left.value(), zncc_right.value()}, {{0,buffers[6]}, {1,buffers[7]}, {2, buffers[8]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> post_process = queue_work(runtime, postprocess_kernel, 2, gwork_dim_scaled_pad, local_work_group, {zncc_left.value(), zncc_right.value()}, {{0,buffers[6]}, {1,buffers[7]}, {2, buffers[8]}}, {});
         if(!post_process.ok()){
             Profiler::add_info("Post process queuing failed: " + std::to_string(post_process.error()));
             return post_process.error();
@@ -312,12 +296,12 @@ namespace mp_course::gpu_workloads::phase_6_vectorized{
 
         //Allocate post process map
         map.free_memory();
-        map.w = downscaled_width; map.h = downscaled_height;
+        map.w = scaled_w; map.h = scaled_h;
         map.format = ImageFormat::GRAY;
-        map.pixels = malloc(downscaled_image_size);
+        map.pixels = malloc(scaled_bsize);
 
         //Read the map into ram
-        clw::ErrorOr<std::shared_ptr<clw::Event>> buffer_read = runtime.cc_queue->read_buffer(buffers[8], false, 0, downscaled_image_size, map.pixels, {post_process.value()});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> buffer_read = runtime.cc_queue->read_buffer(buffers[8], false, 0, scaled_bsize, map.pixels, {post_process.value()});
         if(!buffer_read.ok()){
             Profiler::add_info("Result reading from buffer failed: " + std::to_string(buffer_read.error()));
             return buffer_read.error();

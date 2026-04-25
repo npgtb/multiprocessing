@@ -1,17 +1,18 @@
 #include <helpers.h>
 #include <profiler.h>
 #include <scope_timer.h>
-#include <opencl_workloads/phase_6_tiled.h>
+#include <opencl_workloads/phase_7.h>
 
-namespace mp::gpu_workloads::phase_6_tiled{
+namespace mp::gpu_workloads::phase_7{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime){
         ScopeTimer scope_timer("initialize");
         const std::vector<std::string> kernels = {
-            "resize_image", "grayscale_image", "calculate_disparity_map", "cross_check_occulsion_disparity_maps"
+            "resize_image", "grayscale_image", "calculate_integral_map_rows",
+             "calculate_integral_map_columns", "calculate_disparity_map", "cross_check_occulsion_disparity_maps"
         };
-        const std::string program_path = "data/kernels/phase_6_tiled.cl";
+        const std::string program_path = "data/kernels/phase_7.cl";
         clw::Device device = prefered_device();
         return runtime.load_file(device, program_path, kernels);
     }
@@ -19,7 +20,7 @@ namespace mp::gpu_workloads::phase_6_tiled{
     //Create all the buffers for the pipeline
     cl_int create_buffers(
         OpenCLRuntime& runtime, std::vector<clw::Buffer>& buffers, const size_t image_width, const size_t image_height,
-        const size_t downscale_factor, const size_t group_width, const size_t group_height
+        const size_t downscale_factor, const size_t group_width, const size_t group_height, const size_t sm_data_size
     ){
         const size_t scaled_w = image_width / downscale_factor;
         const size_t scaled_h = image_height / downscale_factor;
@@ -27,7 +28,7 @@ namespace mp::gpu_workloads::phase_6_tiled{
         const size_t scaled_h_padded = scaled_h + ((group_height - (scaled_h % group_height)) % group_height);
         const size_t original_size = image_width * image_height;
         const size_t original_bsize = original_size * sizeof(uint32_t);
-        
+      
         const size_t scaled_bsize = scaled_w * scaled_h;
         const size_t scaled_bsize_padded = scaled_w_padded * scaled_h_padded;
         const size_t downscaled_byte_size = scaled_bsize * sizeof(uint32_t);
@@ -45,6 +46,10 @@ namespace mp::gpu_workloads::phase_6_tiled{
             //Two buffers for the grayscaled images => uint8_t
             {CL_MEM_READ_WRITE, scaled_bsize_padded},
             {CL_MEM_READ_WRITE, scaled_bsize_padded},
+
+            //Two buffers for the integral sum maps
+            {CL_MEM_READ_WRITE, sm_data_size},
+            {CL_MEM_READ_WRITE, sm_data_size},
 
             //Two buffers for the disparity maps
             {CL_MEM_READ_WRITE, scaled_bsize_padded},
@@ -75,13 +80,16 @@ namespace mp::gpu_workloads::phase_6_tiled{
     cl_int bind_pipeline_args(
         OpenCLRuntime& runtime, const int downscale_factor, const int original_width,
         const int window_radius, const int min_disparity, const int max_disparity,
-        const int threshold_value, const int scaled_w, const int scaled_h
+        const int threshold_value, const int scaled_w, const int scaled_h,
+        const int sm_width, const int sm_height
     ){
         //Kernels
         std::shared_ptr<clw::Kernel> downscale_kernel = runtime.kernels[0];
         std::shared_ptr<clw::Kernel> grayscale_kernel = runtime.kernels[1];
-        std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[2];
-        std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[3];
+        std::shared_ptr<clw::Kernel> integral_row = runtime.kernels[2];
+        std::shared_ptr<clw::Kernel> integral_column = runtime.kernels[3];
+        std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[4];
+        std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[5];
 
         std::vector<std::pair<std::shared_ptr<clw::Kernel>, std::vector<std::pair<int, int>>>> kernel_binds = 
         {
@@ -90,10 +98,22 @@ namespace mp::gpu_workloads::phase_6_tiled{
                     {2, downscale_factor}, {3, original_width}
                 }
             },
+            {
+                integral_row, std::vector<std::pair<int,int>>{
+                    {2, scaled_w}, {3, scaled_h}, {4, sm_width},
+                    {5, window_radius}
+                }
+            },
+            {
+                integral_column, std::vector<std::pair<int, int>>{
+                    {1, sm_height}
+                }
+            },
         {
                 zncc_kernel, std::vector<std::pair<int,int>>{
-                    {3, window_radius}, {4, min_disparity}, {5, max_disparity},
-                    {7, scaled_w}, {8, scaled_h}
+                    {5, window_radius}, {6, min_disparity}, {7, max_disparity},
+                    {9, scaled_w}, {10, scaled_h},
+                    {11, sm_width}, {12, sm_height}
                 }
             },
         {
@@ -103,7 +123,6 @@ namespace mp::gpu_workloads::phase_6_tiled{
                 }
             }
         };
-
         cl_int error_code = CL_SUCCESS;
         //Bind the arguments
         for(auto& kernel_arg_pair : kernel_binds){
@@ -128,13 +147,13 @@ namespace mp::gpu_workloads::phase_6_tiled{
             "(" + std::to_string(tile_right_width) + "," + std::to_string(tile_height) + ")"
         );
         Profiler::add_info("Local memory allocation L/R (" + std::to_string(tile_left_size) + "," + std::to_string(tile_right_size) + ")");
-        std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[2];
-        std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[3];
+        std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[4];
+        std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[5];
         std::vector<std::pair<std::shared_ptr<clw::Kernel>, std::vector<std::pair<int, int>>>> kernel_binds = 
         {
         {
                 zncc_kernel, std::vector<std::pair<int,int>>{
-                    {9, tile_left_size}, {10, tile_right_size}
+                    {13, tile_left_size}, {14, tile_right_size}
                 }
             },
         {
@@ -157,6 +176,7 @@ namespace mp::gpu_workloads::phase_6_tiled{
         }
         return CL_SUCCESS;
     }
+
 
     //Binds the given buffers to the kernel as arguments
     cl_int bind_buffers(std::shared_ptr<clw::Kernel> kernel, std::vector<std::pair<int, std::reference_wrapper<clw::Buffer>>> bind_data){
@@ -208,20 +228,32 @@ namespace mp::gpu_workloads::phase_6_tiled{
         const size_t scaled_bsize = scaled_w * scaled_h;
         const size_t original_bsize = original_size * sizeof(uint32_t);
 
-        size_t  gwork_dim_scaled[2] = {scaled_w, scaled_h};
-        size_t  gwork_dim_scaled_pad[2] = {scaled_w_padded, scaled_h_padded};
-        size_t  local_work_group[2] = {group_width, group_height};
+        const size_t window_diameter = (window_radius << 1);
+        const size_t sm_width = (scaled_w + window_diameter);
+        const size_t sm_height = (scaled_h + window_diameter);
+        const size_t sm_buffer_size = sm_width * sm_height * sizeof(uint32_t);
+
+        size_t gwork_dim_integral_row[1] = {sm_height};
+        size_t gwork_dim_integral_column[1] = {sm_width};
+        size_t gwork_dim_scaled[2] = {scaled_w, scaled_h};
+        size_t gwork_dim_scaled_pad[2] = {scaled_w_padded, scaled_h_padded};
+        size_t local_work_group[2] = {group_width, group_height};
 
         //Create buffers for the pipeline and bind the pipeline
         cl_int error_code = CL_SUCCESS;
         std::vector<clw::Buffer> buffers;
         if(
-            (error_code = create_buffers(runtime, buffers, left.w, left.h, downscale_factor, group_width, group_height)) != CL_SUCCESS ||
+            (
+                error_code = create_buffers(
+                    runtime, buffers, left.w, left.h, downscale_factor, 
+                    group_width, group_height, sm_buffer_size
+                )
+            ) != CL_SUCCESS ||
             (
                 error_code = bind_pipeline_args(
                     runtime, downscale_factor, left.w, 
                     window_radius, min_disparity, max_disparity, threshold_value,
-                    scaled_w, scaled_h
+                    scaled_w, scaled_h, sm_width, sm_height
                 )
             ) != CL_SUCCESS ||
             (error_code = allocate_local_memory(runtime, window_radius, min_disparity, max_disparity, group_width, group_height)) != CL_SUCCESS
@@ -233,8 +265,10 @@ namespace mp::gpu_workloads::phase_6_tiled{
         //Kernels
         std::shared_ptr<clw::Kernel> downscale_kernel = runtime.kernels[0];
         std::shared_ptr<clw::Kernel> grayscale_kernel = runtime.kernels[1];
-        std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[2];
-        std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[3];
+        std::shared_ptr<clw::Kernel> integral_row = runtime.kernels[2];
+        std::shared_ptr<clw::Kernel> integral_column = runtime.kernels[3];
+        std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[4];
+        std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[5];
 
         //First step of the pipeline queue the writes of the original images to the device memory
         clw::ErrorOr<std::shared_ptr<clw::Event>> left_write = runtime.cc_queue->write_buffer(buffers[0], false, 0, original_bsize, left.pixels, {});
@@ -274,9 +308,37 @@ namespace mp::gpu_workloads::phase_6_tiled{
             return right_grayscale.error();
         }
 
+        //Queue the integral map row calc
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_integral_row = queue_work(runtime, integral_row, 1, gwork_dim_integral_row, nullptr, {left_grayscale.value()}, {{0,buffers[4]}, {1,buffers[6]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_integral_row = queue_work(runtime, integral_row, 1, gwork_dim_integral_row, nullptr, {right_grayscale.value()}, {{0,buffers[5]}, {1,buffers[7]}}, {});
+
+        //Queueing was succesful?
+        if(!left_integral_row.ok()){
+            Profiler::add_info("Left integral row queueu failed: " + std::to_string(left_integral_row.error()));
+            return left_integral_row.error();
+        }
+        if(!right_integral_row.ok()){
+            Profiler::add_info("Right integral row queueu failed: " + std::to_string(right_integral_row.error()));
+            return right_integral_row.error();
+        }
+
+        //Queue the integral map column calc
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_integral_column = queue_work(runtime, integral_column, 1, gwork_dim_integral_column, nullptr, {left_integral_row.value()}, {{0,buffers[6]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_integral_column = queue_work(runtime, integral_column, 1, gwork_dim_integral_column, nullptr, {right_integral_row.value()}, {{0,buffers[7]}}, {});
+
+        //Queueing was succesful?
+        if(!left_integral_column.ok()){
+            Profiler::add_info("Left integral column queueu failed: " + std::to_string(left_integral_column.error()));
+            return left_integral_column.error();
+        }
+        if(!right_integral_column.ok()){
+            Profiler::add_info("Right integral column queueu failed: " + std::to_string(right_integral_column.error()));
+            return right_integral_column.error();
+        }
+
         //Recombine the split pipelines together for the zncc
-        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_left = queue_work(runtime, zncc_kernel, 2, gwork_dim_scaled_pad, local_work_group, {left_grayscale.value(), right_grayscale.value()}, {{0,buffers[4]}, {1,buffers[5]}, {2, buffers[6]}}, {{6, -1}});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_right = queue_work(runtime, zncc_kernel, 2, gwork_dim_scaled_pad, local_work_group, {left_grayscale.value(), right_grayscale.value()}, {{0,buffers[5]}, {1,buffers[4]}, {2, buffers[7]}}, {{6, 1}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_left = queue_work(runtime, zncc_kernel, 2, gwork_dim_scaled_pad, local_work_group, {left_integral_column.value(), right_integral_column.value()}, {{0,buffers[4]}, {1,buffers[5]}, {2, buffers[6]}, {3, buffers[7]}, {4, buffers[8]}},{{8, -1}});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> zncc_right = queue_work(runtime, zncc_kernel, 2, gwork_dim_scaled_pad, local_work_group, {left_integral_column.value(), right_integral_column.value()}, {{0,buffers[5]}, {1,buffers[4]}, {2, buffers[6]}, {3, buffers[7]}, {4, buffers[9]}}, {{8, 1}});
         if(!zncc_left.ok()){
             Profiler::add_info("Left Zncc queueing failed: " + std::to_string(zncc_left.error()));
             return zncc_left.error();
@@ -287,7 +349,7 @@ namespace mp::gpu_workloads::phase_6_tiled{
         }
 
         //Queue the post process
-        clw::ErrorOr<std::shared_ptr<clw::Event>> post_process = queue_work(runtime, postprocess_kernel, 2, gwork_dim_scaled_pad, local_work_group, {zncc_left.value(), zncc_right.value()}, {{0,buffers[6]}, {1,buffers[7]}, {2, buffers[8]}}, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> post_process = queue_work(runtime, postprocess_kernel, 2, gwork_dim_scaled_pad, local_work_group, {zncc_left.value(), zncc_right.value()}, {{0,buffers[8]}, {1,buffers[9]}, {2, buffers[10]}}, {});
         if(!post_process.ok()){
             Profiler::add_info("Post process queuing failed: " + std::to_string(post_process.error()));
             return post_process.error();
@@ -300,7 +362,7 @@ namespace mp::gpu_workloads::phase_6_tiled{
         map.pixels = malloc(scaled_bsize);
 
         //Read the map into ram
-        clw::ErrorOr<std::shared_ptr<clw::Event>> buffer_read = runtime.cc_queue->read_buffer(buffers[8], false, 0, scaled_bsize, map.pixels, {post_process.value()});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> buffer_read = runtime.cc_queue->read_buffer(buffers[10], false, 0, scaled_bsize, map.pixels, {post_process.value()});
         if(!buffer_read.ok()){
             Profiler::add_info("Result reading from buffer failed: " + std::to_string(buffer_read.error()));
             return buffer_read.error();
@@ -316,6 +378,10 @@ namespace mp::gpu_workloads::phase_6_tiled{
         report_cl_timing("Pipeline | downscale right", right_resize.value());
         report_cl_timing("Pipeline | grayscale left", left_grayscale.value());
         report_cl_timing("Pipeline | grayscale right", right_grayscale.value());
+        report_cl_timing("Pipeline | Integral left row", left_integral_row.value());
+        report_cl_timing("Pipeline | Integral right row", right_integral_row.value());
+        report_cl_timing("Pipeline | Integral left column", left_integral_column.value());
+        report_cl_timing("Pipeline | Integral right column", right_integral_column.value());
         report_cl_timing("Pipeline | Zncc map left", zncc_left.value());
         report_cl_timing("Pipeline | Zncc map right", zncc_right.value());
         report_cl_timing("Pipeline | Post process", post_process.value());

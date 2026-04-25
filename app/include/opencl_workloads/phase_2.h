@@ -3,7 +3,7 @@
 
 #include <opencl_runtime.h>
 
-namespace mp_course::gpu_workloads::phase_2{
+namespace mp::gpu_workloads::phase_2{
     //Lists the opencl information of the computer
     void list_info();
 

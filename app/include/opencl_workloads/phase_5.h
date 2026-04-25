@@ -4,7 +4,7 @@
 #include <image.h>
 #include <opencl_runtime.h>
 
-namespace mp_course::gpu_workloads::phase_5{
+namespace mp::gpu_workloads::phase_5{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime);

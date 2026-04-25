@@ -51,7 +51,7 @@ inline float calculate_zncc(
             lower_r += (r_diff * r_diff);
         }
     }
-    float result = upper / (sqrt(lower_l * lower_r));
+    float result = upper / (native_sqrt(lower_l * lower_r));
     return select(0.f, result, isfinite(result));
 }
 
@@ -214,7 +214,7 @@ __kernel void cross_check_occulsion_disparity_maps(
     const int lx_halo = lx + window_radius;
     const int ly_halo = ly + window_radius;
 
-    //Pull disparit L=>R and R=>L
+    //Pull disparity L=>R and R=>L
     uchar disparity_value_l = left_tile[ly_halo * tile_left_width + lx_halo];
     uchar disparity_value_r = right_tile[ly_halo * tile_right_width + ((lx_halo + max_disparity) - disparity_value_l)];
     //Cross-check and occulsion

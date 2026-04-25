@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <profiler.h>
 
-namespace mp_course{
+namespace mp{
 
     //Initialize empty profiler
     Profiler::Profiler()

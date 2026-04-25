@@ -3,7 +3,7 @@
 #include <scope_timer.h>
 #include <opencl_workloads/phase_6_image2d_t.h>
 
-namespace mp_course::gpu_workloads::phase_6_image2d_t{
+namespace mp::gpu_workloads::phase_6_image2d_t{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime){
@@ -180,23 +180,18 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         const int max_disparity, const int threshold_value
     ){
         ScopeTimer scope_timer("pipeline");
-        const size_t downscaled_width = left.w / downscale_factor;
-        const size_t downscaled_height = left.h / downscale_factor;
-        const size_t downscaled_image_size = downscaled_width * downscaled_height;
+        const size_t scaled_w = left.w / downscale_factor;
+        const size_t scaled_h = left.h / downscale_factor;
+        const size_t scaled_bsize = scaled_w * scaled_h;
         size_t origin[3] = {0, 0, 0}; 
         size_t original_region[3] = {static_cast<size_t>(left.w), static_cast<size_t>(left.h), 1};
-        size_t downscaled_region[3] = {downscaled_width, downscaled_height, 1};
+        size_t scaled_region[3] = {scaled_w, scaled_h, 1};
 
-        Profiler::add_info(
-            "Global work group (" + std::to_string(downscaled_width) + "," +
-            std::to_string(downscaled_height) + ")"
-        );
-        
         //Create images for the pipeline and bind the pipeline
         cl_int error_code = CL_SUCCESS;
         std::vector<clw::Image> images;
         if(
-            (error_code = create_images(runtime, images, left.w, left.h, downscaled_width, downscaled_height)) != CL_SUCCESS ||
+            (error_code = create_images(runtime, images, left.w, left.h, scaled_w, scaled_h)) != CL_SUCCESS ||
             (error_code = bind_pipeline_args(
                 runtime, downscale_factor, window_radius, 
                 min_disparity, max_disparity, threshold_value
@@ -212,7 +207,6 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         std::shared_ptr<clw::Kernel> zncc_kernel = runtime.kernels[2];
         std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[3];
 
-
         //First step of the pipeline queue the writes of the original images to the device memory
         clw::ErrorOr<std::shared_ptr<clw::Event>> left_write = runtime.cc_queue->write_image(images[0], false, origin, original_region, 0, 0, left.pixels, {});
         clw::ErrorOr<std::shared_ptr<clw::Event>> right_write = runtime.cc_queue->write_image(images[1], false, origin, original_region, 0, 0, right.pixels, {});
@@ -227,7 +221,7 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
         }
 
         //Queue the downscale action on both images
-        size_t  split_work_dimensions[2] = {downscaled_width, downscaled_height};
+        size_t  split_work_dimensions[2] = {scaled_w, scaled_h};
 
         clw::ErrorOr<std::shared_ptr<clw::Event>> left_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {left_write.value()}, {{0,images[0]}, {1,images[2]}}, {});
         clw::ErrorOr<std::shared_ptr<clw::Event>> right_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {right_write.value()}, {{0,images[1]}, {1,images[3]}}, {});
@@ -274,12 +268,12 @@ namespace mp_course::gpu_workloads::phase_6_image2d_t{
 
         //Allocate post process map
         map.free_memory();
-        map.w = downscaled_width; map.h = downscaled_height;
+        map.w = scaled_w; map.h = scaled_h;
         map.format = ImageFormat::GRAY;
-        map.pixels = malloc(downscaled_image_size);
+        map.pixels = malloc(scaled_bsize);
 
         //Read the map into ram
-        clw::ErrorOr<std::shared_ptr<clw::Event>> image_read = runtime.cc_queue->read_image(images[8], false, origin, downscaled_region, 0, 0, map.pixels, {post_process.value()});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> image_read = runtime.cc_queue->read_image(images[8], false, origin, scaled_region, 0, 0, map.pixels, {post_process.value()});
         if(!image_read.ok()){
             Profiler::add_info("Result reading from image failed: " + std::to_string(image_read.error()));
             return image_read.error();

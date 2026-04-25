@@ -5,7 +5,7 @@
 #include <vector>
 #include <opencl_wrapper/opencl_wrapper.h>
 
-namespace mp_course{
+namespace mp{
     struct OpenCLRuntime{
         std::shared_ptr<clw::Context> context;
         std::shared_ptr<clw::Program> program;

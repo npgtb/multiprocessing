@@ -1,10 +1,10 @@
-#ifndef MP_COURSE_OPENCL_WORKLOADS_PHASE_6_A
-#define MP_COURSE_OPENCL_WORKLOADS_PHASE_6_A
+#ifndef MP_COURSE_OPENCL_WORKLOADS_PHASE_6_TILED
+#define MP_COURSE_OPENCL_WORKLOADS_PHASE_6_TILED
 
 #include <image.h>
 #include <opencl_runtime.h>
 
-namespace mp_course::gpu_workloads::phase_6_tiled{
+namespace mp::gpu_workloads::phase_6_tiled{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime);

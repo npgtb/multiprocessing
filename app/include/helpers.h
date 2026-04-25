@@ -6,7 +6,7 @@
 #include <opencl_wrapper/event.h>
 #include <opencl_wrapper/opencl_wrapper.h>
 
-namespace mp_course{
+namespace mp{
     //Simple checksum for float array comparision
     double simple_checksum_float_array(float * arr, const int size);
 

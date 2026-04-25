@@ -2,7 +2,7 @@
 #include <opencl_runtime.h>
 
 
-namespace mp_course{
+namespace mp{
     //Init empty
     OpenCLRuntime::OpenCLRuntime():context(nullptr), program(nullptr), kernels(), cc_queue(nullptr){}
 

@@ -1,10 +1,10 @@
-#ifndef MP_COURSE_OPENCL_WORKLOADS_PHASE_6_B
-#define MP_COURSE_OPENCL_WORKLOADS_PHASE_6_B
+#ifndef MP_COURSE_OPENCL_WORKLOADS_PHASE_6_VECTORIZED
+#define MP_COURSE_OPENCL_WORKLOADS_PHASE_6_VECTORIZED
 
 #include <image.h>
 #include <opencl_runtime.h>
 
-namespace mp_course::gpu_workloads::phase_6_vectorized{
+namespace mp::gpu_workloads::phase_6_vectorized{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime);

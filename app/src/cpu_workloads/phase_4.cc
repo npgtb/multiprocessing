@@ -1,39 +1,8 @@
 #include <math.h>
-#include <algorithm>
 #include <scope_timer.h>
 #include <cpu_workloads/phase_4.h>
 
-namespace mp_course::cpu_workloads::phase_4{
-
-    //Generic function for queueing linear work into the threadpool
-    template <typename Function, typename... Arguments>
-    void queue_linear_work(
-        ThreadPool& thread_pool, int work_size,
-        Function&& work, Arguments&&... arguments
-    ){
-        if(work_size > 0){
-            //Calculate work size
-            const int thread_count = std::min(work_size, thread_pool.pool_size());
-            const int work_chunk_size = std::floor(work_size /  thread_count);
-            //Queue work
-            for(int i = 0; i < (thread_count-1); ++i){
-                const int chunk_start = (work_chunk_size * i);
-                const int chunk_end = (work_chunk_size * (i+1));
-                thread_pool.queue_work(
-                    std::forward<Function>(work),
-                    std::forward<Arguments>(arguments)...,
-                    chunk_start, chunk_end
-                );
-            }
-            //Queue the remainder of the work into last thread
-            const int remainder_start = work_chunk_size * (thread_count - 1);
-            thread_pool.queue_work(
-            std::forward<Function>(work),
-                std::forward<Arguments>(arguments)...,
-                remainder_start, work_size
-            );
-        }
-    }
+namespace mp::cpu_workloads::phase_4{
 
     //Chunk processor for resize_image
     void resize_image_work_chunk(
@@ -49,13 +18,13 @@ namespace mp_course::cpu_workloads::phase_4{
     }
 
     //Resize the image by factor. Takes the nth row and column approach. Expects a RGBA format image.
-    bool resize_image(Image& image, const int factor, ThreadPool& thread_pool){
-        if(image.format == ImageFormat::RGBA){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_multi_thread::resize_image");
+    bool resize_image(Image& input, Image& output, const int factor, ThreadPool& thread_pool){
+        if(input.format == ImageFormat::RGBA){
+            mp::ScopeTimer exec_timer("mp::zncc_c_multi_thread::resize_image");
             //Calculate new dimensions and allocate memory
-            const int new_width = image.w / factor;
-            const int new_height = image.h / factor;
-            uint32_t * original_image = static_cast<uint32_t*>(image.pixels);
+            const int new_width = input.w / factor;
+            const int new_height = input.h / factor;
+            uint32_t * original_image = static_cast<uint32_t*>(input.pixels);
             uint32_t * downsized_image = static_cast<uint32_t*>(malloc(new_width * new_height * sizeof(uint32_t)));
 
             if(downsized_image){
@@ -63,15 +32,11 @@ namespace mp_course::cpu_workloads::phase_4{
                 //where X = (image_rows / pool size) (+ remainder added to the last workload)
                 queue_linear_work(
                     thread_pool, new_height, resize_image_work_chunk,
-                    original_image, downsized_image, new_width, new_height, image.w, factor
+                    original_image, downsized_image, new_width, new_height, input.w, factor
                 );
                 //Wait for work to finish
                 thread_pool.wait_for_work();
-                original_image = nullptr;
-                image.free_memory();
-                image.w = new_width;
-                image.h = new_height;
-                image.pixels = static_cast<void*>(downsized_image);
+                output.set(downsized_image, new_width, new_height, ImageFormat::RGBA);
                 return true;
             }
         }
@@ -100,7 +65,7 @@ namespace mp_course::cpu_workloads::phase_4{
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image, ThreadPool& thread_pool){
         if(image.format == ImageFormat::RGBA){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_multi_thread::grayscale_image");
+            mp::ScopeTimer exec_timer("mp::zncc_c_multi_thread::grayscale_image");
             //allocate memory
             const int memory_size = image.w * image.h;
             uint8_t * grayscaled_pixels = static_cast<uint8_t*>(malloc(memory_size * sizeof(uint8_t)));
@@ -114,10 +79,7 @@ namespace mp_course::cpu_workloads::phase_4{
                 );
                 //Wait for work to finish
                 thread_pool.wait_for_work();
-                rgba_pixels = nullptr;
-                image.free_memory();
-                image.pixels = static_cast<void*>(grayscaled_pixels);
-                image.format = ImageFormat::GRAY;
+                image.set(grayscaled_pixels, image.w, image.h, ImageFormat::GRAY);
                 return true;
             }
         }
@@ -133,7 +95,6 @@ namespace mp_course::cpu_workloads::phase_4{
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = image.clamp_y(y + yr) * image.w ;
             for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
                 int cx = image.clamp_x(x + xr);
                 sum += pixels[cy + cx];
             }
@@ -150,10 +111,9 @@ namespace mp_course::cpu_workloads::phase_4{
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = left.clamp_y(y + yr) * left.w;
             for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
                 int lcx = left.clamp_x(x + xr);
                 int rcx = right.clamp_x(rx + xr);
-                //Calculate difference
+                //Normalize brightness with mean
                 float l_diff = lpixels[cy + lcx] - lmean;
                 float r_diff = rpixels[cy + rcx] - rmean;
                 //Adjust upper and lower sums
@@ -172,13 +132,9 @@ namespace mp_course::cpu_workloads::phase_4{
 
     //Chunk processor for calculate_disparity_map
     void calculate_disparity_map_work_chunk(
-        int window_radius, int min_disparity, int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, const int chunk_start, const int chunk_end
+        int window_radius, int min_disparity, int max_disparity, const int disparity_direction, Image& left, Image& right, Image& map, const int chunk_start, const int chunk_end
     ){
         uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
-        int disparity_direction = 1;
-        if(left_to_right){
-            disparity_direction = -1;
-        }
         //Calculate ZNCC
         for(int y = chunk_start; y < chunk_end; ++y){
             for(int x = 0; x < left.w; ++x){
@@ -206,18 +162,19 @@ namespace mp_course::cpu_workloads::phase_4{
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
     bool calculate_disparity_map(int window_radius, int min_disparity, int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, ThreadPool& thread_pool, std::string scope_tag){
         if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_multi_thread::calculate_disparity_map_" + scope_tag);
+            mp::ScopeTimer exec_timer("mp::zncc_c_multi_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
-            map.free_memory();
-            map.w = left.w; map.h = left.h;
-            map.format = ImageFormat::GRAY;
-            map.pixels = malloc(map.w * map.h);
-            if(map.pixels){
-                uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
+            uint8_t* disparity_map_pixels = static_cast<uint8_t*>(malloc(left.w * left.h));
+            if(disparity_map_pixels){
+                map.set(disparity_map_pixels, left.w, left.h, ImageFormat::GRAY);
+                int disparity_direction = 1;
+                if(left_to_right){
+                    disparity_direction = -1;
+                }
                 //Threading strat => Split the work into Chunks of X rows.
                 queue_linear_work(
                     thread_pool, left.h, calculate_disparity_map_work_chunk,
-                    window_radius, min_disparity, max_disparity, left_to_right, std::ref(left), std::ref(right), std::ref(map)
+                    window_radius, min_disparity, max_disparity, disparity_direction, std::ref(left), std::ref(right), std::ref(map)
                 );
                 //Wait for work to finish
                 thread_pool.wait_for_work();
@@ -247,7 +204,6 @@ namespace mp_course::cpu_workloads::phase_4{
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = image.clamp_y(y + yr) * image.w;
             for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
                 int cx = image.clamp_x(x + xr);
                 uint8_t pixel_value = pixels[cy + cx];
                 if(pixel_value > 0){
@@ -280,20 +236,18 @@ namespace mp_course::cpu_workloads::phase_4{
         uint8_t * left_pixels = static_cast<uint8_t*>(left_disparity.pixels);
         uint8_t * right_pixels = static_cast<uint8_t*>(right_disparity.pixels);
         uint8_t * pp_pixels = static_cast<uint8_t*>(pp_disparity.pixels);
-
-        //Cross check and occuld
         for(int y = chunk_start; y < chunk_end; ++y){
             for(int x = 0; x < left_disparity.w; ++x){ 
+                //Pull disparity L=>R and R=>L
                 uint8_t disparity_value_l = left_pixels[y * left_disparity.w + x];
-                //In the right map, we move to the left disparity_value_l mutch
                 uint8_t disparity_value_r = 0;
                 if(x - disparity_value_l >= 0){
                     disparity_value_r = right_pixels[y * left_disparity.w + x - disparity_value_l];
                 }
-
                 uint8_t final_value = disparity_value_l;
-                //Cross-check and occuld
+                //Cross-check and occulsion
                 if(abs(disparity_value_l - disparity_value_r) > threshold_value || final_value == 0){
+                    //Get the window middle value as filler
                     final_value = calculate_window_non_zero_middle(x, y, window_radius, left_disparity);
                 }
                 pp_pixels[y * left_disparity.w + x] = grayscale_disparity(min_disparity, max_disparity, final_value);
@@ -307,14 +261,11 @@ namespace mp_course::cpu_workloads::phase_4{
             left_disparity.format == ImageFormat::GRAY && right_disparity.format == ImageFormat::GRAY &&
             left_disparity.w == right_disparity.w && left_disparity.h == right_disparity.h
         ){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_multi_thread::cross_check_occulsion_disparity_maps");
+            mp::ScopeTimer exec_timer("mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps");
             //reserve space for the post processed map
-            pp_disparity.free_memory();
-            pp_disparity.pixels = malloc(left_disparity.w * left_disparity.h);
-            if(pp_disparity.pixels){
-                pp_disparity.format = ImageFormat::GRAY;
-                pp_disparity.w = left_disparity.w;
-                pp_disparity.h = left_disparity.h;
+            uint8_t * pp_pixels = static_cast<uint8_t*>(malloc(left_disparity.w * left_disparity.h));
+            if(pp_pixels){
+                pp_disparity.set(pp_pixels, left_disparity.w, left_disparity.h, ImageFormat::GRAY);
                 //Threading strat => Split the work into Chunks of X rows.
                 queue_linear_work(
                     thread_pool, left_disparity.h, cross_check_occulsion_disparity_maps_work_chunk,

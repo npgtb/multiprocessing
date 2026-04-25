@@ -2,10 +2,12 @@
 #define MP_COURSE_IMAGE_H
 
 #include <string>
+#include <cstdint>
 
-namespace mp_course{
+namespace mp{
     enum class ImageFormat{
         UNKNOWN,
+        INTEGRAL, //uint32_t
         RGBA, //uint32_t
         GRAY //uint8_t
     };
@@ -47,6 +49,17 @@ namespace mp_course{
 
         //Save the image to the given path
         bool save(const std::string& path);
+
+        //Sets the images data to the given parameters, freeing previous data
+        template <typename T>
+        requires (std::same_as<T, uint8_t> || std::same_as<T, uint32_t> || std::same_as<T, uint64_t>)
+        void set(T*pixel_data, const int width, const int height, ImageFormat image_format){
+            free_memory();
+            pixels = static_cast<void*>(pixel_data);
+            w = width;
+            h = height;
+            format = image_format;
+        }
     };
 }
 

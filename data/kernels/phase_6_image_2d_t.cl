@@ -136,7 +136,6 @@ uchar calculate_window_non_zero_middle(
     for(int yr = -radius; yr <= radius; ++yr){
         int cy = clamp(y + yr, 0, height-1);
         for(int xr = -radius; xr <= radius; ++xr){
-            //Edge handling => nearest valid pixel
             int cx = clamp(x + xr, 0, width-1);
             uint4 pixel_value = read_imageui(pixels, pixel_sampler, (int2)(cx, cy));
             if(pixel_value.x > 0){

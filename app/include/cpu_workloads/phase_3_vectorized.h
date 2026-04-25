@@ -5,10 +5,10 @@
 #include <image.h>
 
 
-namespace mp_course::cpu_workloads::phase_3_vectorized{
+namespace mp::cpu_workloads::phase_3_vectorized{
 
     //Resize the image by factor. Takes the nth row and column approach. Expects a RGBA format image.
-    bool resize_image(Image& image, const int factor);
+    bool resize_image(Image& input, Image& output, const int factor);
 
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image);

@@ -3,7 +3,7 @@
 #include <scope_timer.h>
 #include <cpu_workloads/phase_2.h>
 
-namespace mp_course::cpu_workloads::phase_2{
+namespace mp::cpu_workloads::phase_2{
     //Performs a element wise addition on two float arrays(Matrices)
     void add_matrix(const float* m1, const float* m2, const int size){
         ScopeTimer scope_timer("add_matrix");

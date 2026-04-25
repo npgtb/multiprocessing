@@ -3,7 +3,7 @@
 #include <scope_timer.h>
 #include <opencl_workloads/phase_5.h>
 
-namespace mp_course::gpu_workloads::phase_5{
+namespace mp::gpu_workloads::phase_5{
 
     //Loads the opencl file and initializes the given kernels from it
     cl_int initialize(OpenCLRuntime& runtime){
@@ -17,28 +17,28 @@ namespace mp_course::gpu_workloads::phase_5{
     }
 
     //Create all the buffers for the pipeline
-    cl_int create_buffers(OpenCLRuntime& runtime, std::vector<clw::Buffer>& buffers, const size_t image_size, const size_t image_byte_size, const size_t downscale_factor, const size_t downscaled_image_size){
-        const size_t downscaled_byte_size = downscaled_image_size * sizeof(uint32_t);
+    cl_int create_buffers(OpenCLRuntime& runtime, std::vector<clw::Buffer>& buffers, const size_t original_size, const size_t original_bsize, const size_t downscale_factor, const size_t scaled_bsize){
+        const size_t downscaled_byte_size = scaled_bsize * sizeof(uint32_t);
         //Buffer descriptions
         std::vector<clw::BufferDescription> descriptions = {
             //Two Initial buffers for the original images
-            {CL_MEM_READ_ONLY, image_byte_size},
-            {CL_MEM_READ_ONLY, image_byte_size},
+            {CL_MEM_READ_ONLY, original_bsize},
+            {CL_MEM_READ_ONLY, original_bsize},
 
             //Two buffers for the downscaled images
             {CL_MEM_READ_WRITE, downscaled_byte_size},
             {CL_MEM_READ_WRITE, downscaled_byte_size},
 
             //Two buffers for the grayscaled images => uint8_t
-            {CL_MEM_READ_WRITE, downscaled_image_size},
-            {CL_MEM_READ_WRITE, downscaled_image_size},
+            {CL_MEM_READ_WRITE, scaled_bsize},
+            {CL_MEM_READ_WRITE, scaled_bsize},
 
             //Two buffers for the disparity maps
-            {CL_MEM_READ_WRITE, downscaled_image_size},
-            {CL_MEM_READ_WRITE, downscaled_image_size},
+            {CL_MEM_READ_WRITE, scaled_bsize},
+            {CL_MEM_READ_WRITE, scaled_bsize},
 
             //One buffer for the post processed result
-            {CL_MEM_READ_WRITE, downscaled_image_size},
+            {CL_MEM_READ_WRITE, scaled_bsize},
         };
         //Reserve buffer memory
         buffers.reserve(descriptions.size());
@@ -138,22 +138,17 @@ namespace mp_course::gpu_workloads::phase_5{
         const int max_disparity, const int threshold_value
     ){
         ScopeTimer scope_timer("pipeline");
-        const int image_size = left.h * left.w;
-        const size_t downscaled_width = left.w / downscale_factor;
-        const size_t downscaled_height = left.h / downscale_factor;
-        const size_t downscaled_image_size = downscaled_width * downscaled_height;
-        const size_t image_byte_size = image_size * sizeof(uint32_t);
+        const size_t original_size = left.h * left.w;
+        const size_t scaled_w = left.w / downscale_factor;
+        const size_t scaled_h = left.h / downscale_factor;
+        const size_t scaled_bsize = scaled_w * scaled_h;
+        const size_t original_bsize = original_size * sizeof(uint32_t);
 
-        Profiler::add_info(
-            "Global work group (" + std::to_string(downscaled_width) + "," +
-            std::to_string(downscaled_height) + ")"
-        );
-        
         //Create buffers for the pipeline and bind the pipeline
         cl_int error_code = CL_SUCCESS;
         std::vector<clw::Buffer> buffers;
         if(
-            (error_code = create_buffers(runtime, buffers, image_size, image_byte_size, downscale_factor, downscaled_image_size)) != CL_SUCCESS ||
+            (error_code = create_buffers(runtime, buffers, original_size, original_bsize, downscale_factor, scaled_bsize)) != CL_SUCCESS ||
             (error_code = bind_pipeline_args(
                 runtime, downscale_factor, left.w, 
                 window_radius, min_disparity, max_disparity, 
@@ -171,8 +166,8 @@ namespace mp_course::gpu_workloads::phase_5{
         std::shared_ptr<clw::Kernel> postprocess_kernel = runtime.kernels[3];
 
         //First step of the pipeline queue the writes of the original images to the device memory
-        clw::ErrorOr<std::shared_ptr<clw::Event>> left_write = runtime.cc_queue->write_buffer(buffers[0], false, 0, image_byte_size, left.pixels, {});
-        clw::ErrorOr<std::shared_ptr<clw::Event>> right_write = runtime.cc_queue->write_buffer(buffers[1], false, 0, image_byte_size, right.pixels, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> left_write = runtime.cc_queue->write_buffer(buffers[0], false, 0, original_bsize, left.pixels, {});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> right_write = runtime.cc_queue->write_buffer(buffers[1], false, 0, original_bsize, right.pixels, {});
         //Queue action was successful?
         if(!left_write.ok()){
             Profiler::add_info("Left image write to buffer failed: " + std::to_string(left_write.error()));
@@ -184,7 +179,7 @@ namespace mp_course::gpu_workloads::phase_5{
         }
 
         //Queue the downscale action on both images
-        size_t  split_work_dimensions[2] = {downscaled_width, downscaled_height};
+        size_t  split_work_dimensions[2] = {scaled_w, scaled_h};
 
         clw::ErrorOr<std::shared_ptr<clw::Event>> left_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {left_write.value()}, {{0,buffers[0]}, {1,buffers[2]}}, {});
         clw::ErrorOr<std::shared_ptr<clw::Event>> right_resize = queue_work(runtime, downscale_kernel, 2, split_work_dimensions, nullptr, {right_write.value()}, {{0,buffers[1]}, {1,buffers[3]}}, {});
@@ -231,12 +226,12 @@ namespace mp_course::gpu_workloads::phase_5{
 
         //Allocate post process map
         map.free_memory();
-        map.w = downscaled_width; map.h = downscaled_height;
+        map.w = scaled_w; map.h = scaled_h;
         map.format = ImageFormat::GRAY;
-        map.pixels = malloc(downscaled_image_size);
+        map.pixels = malloc(scaled_bsize);
 
         //Read the map into ram
-        clw::ErrorOr<std::shared_ptr<clw::Event>> buffer_read = runtime.cc_queue->read_buffer(buffers[8], false, 0, downscaled_image_size, map.pixels, {post_process.value()});
+        clw::ErrorOr<std::shared_ptr<clw::Event>> buffer_read = runtime.cc_queue->read_buffer(buffers[8], false, 0, scaled_bsize, map.pixels, {post_process.value()});
         if(!buffer_read.ok()){
             Profiler::add_info("Result reading from buffer failed: " + std::to_string(buffer_read.error()));
             return buffer_read.error();

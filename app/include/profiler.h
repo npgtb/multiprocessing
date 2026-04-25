@@ -2,7 +2,7 @@
 #include <memory>
 #include <sstream>
 
-namespace mp_course{
+namespace mp{
     enum class TimingDevice{
         CPU, GPU
     };

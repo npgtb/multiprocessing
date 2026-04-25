@@ -4,7 +4,7 @@
 #include <opencl_runtime.h>
 #include <opencl_workloads/phase_1.h>
 
-namespace mp_course::gpu_workloads::phase_1{
+namespace mp::gpu_workloads::phase_1{
 
     //Load the opencl kernel from a file
     cl_int hello_world_load(OpenCLRuntime& cl_single){

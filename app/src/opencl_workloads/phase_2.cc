@@ -4,7 +4,7 @@
 #include <scope_timer.h>
 #include <opencl_workloads/phase_2.h>
 
-namespace mp_course::gpu_workloads::phase_2{
+namespace mp::gpu_workloads::phase_2{
 
     //Define the data to fetch from the platforms and devices
     struct info_fetch{

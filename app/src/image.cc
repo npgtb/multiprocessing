@@ -2,7 +2,7 @@
 #include <cstring>
 #include <drawkit/surface.h>
 
-namespace mp_course{
+namespace mp{
 
         //Transfers the pixels from surface to given storage
         bool transfer_pixel_data_from_surface(drawkit::Surface& surface, void** storage){
@@ -57,21 +57,66 @@ namespace mp_course{
             return false;
         }
 
+        //Produce a grayscale image by normalizing the data
+        template <typename T>
+        requires (std::same_as<T, uint8_t> || std::same_as<T, uint32_t> || std::same_as<T, uint64_t>)
+        uint8_t * normalized_grayscale(T * data, int w, int h){
+            int pixel_count = w * h;
+            T largest = 0;
+            for(int i = 0; i < pixel_count; ++i){
+                if(largest < data[i]){
+                    largest = data[i];
+                }
+            }
+            uint8_t * normalized_data = static_cast<uint8_t*>(malloc(pixel_count));
+            if(normalized_data){
+                for(int i = 0; i < pixel_count; ++i){
+                    float normalized = ((float)data[i] / largest);
+                    normalized_data[i] = (uint8_t)(255.f * normalized);
+                }
+                return normalized_data;
+            }
+            return nullptr;
+        }
+
         //Save the image to the given path
         bool Image::save(const std::string& path){
-            //Assume RGBA image
-            drawkit::PixelFormat surface_format = drawkit::PixelFormat::RGBA8;
-            int pitch = w * sizeof(uint32_t);
-            if(format == ImageFormat::GRAY){
-                //Adjust for grayscale
-                surface_format = drawkit::PixelFormat::GRAY8;
-                pitch = w;
+            bool free_normalized = false;
+            drawkit::PixelFormat surface_format = drawkit::PixelFormat::UNKNOWN;
+            void * data = nullptr;
+            int pitch = 0;
+
+            switch(format){
+                case mp::ImageFormat::RGBA:
+                    data = pixels;
+                    pitch = w * sizeof(uint32_t);
+                    surface_format = drawkit::PixelFormat::RGBA8;
+                break;
+                case mp::ImageFormat::GRAY:
+                    data = pixels;
+                    pitch = w;
+                    surface_format = drawkit::PixelFormat::GRAY8;
+                break;
+                case mp::ImageFormat::INTEGRAL:
+                    data = normalized_grayscale(static_cast<uint32_t*>(pixels), w, h);
+                    pitch = w;
+                    surface_format = drawkit::PixelFormat::GRAY8;
+                    free_normalized = true;
+                break;
+                default:
+                    return false;
             }
+
+            bool success = false;
             drawkit::Surface surface;
             //Try to convert pixel data into surface
-            if(surface.create(w, h, pitch, surface_format, pixels)){
-                return surface.save(path);
+            if((success = surface.create(w, h, pitch, surface_format, data)) == true){
+                success = surface.save(path);
             }
-            return false;
+
+            if(free_normalized && data){
+                free(data);
+            }
+            return success;
         }
 }

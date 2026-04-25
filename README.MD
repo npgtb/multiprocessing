@@ -7,7 +7,7 @@ This module depends on the [SDL3](https://github.com/libsdl-org/SDL) and [SDL3_I
 This module depends on the opencl project, specifically the 3.0 version.
 ## Building
 The ```CMakePresets.json``` provides a release preset for building with ```Ninja``` build system.
-```phase_3_vectorized.cc``` and ```phase_4_vectorized.cc``` utilizes the gcc compile time flags to detect cpu capabilities.
+```phase_3_vectorized.cc```, ```phase_4_vectorized.cc``` and ```phase_7.cc``` utilizes the gcc compile time flags to detect cpu capabilities.
 ```
 cmake --preset release
 cmake --build --preset release
@@ -27,12 +27,13 @@ A pruned SDL based library for handling loading images formats.
 A RAII - style C++ wrapping library for the Opencl C-API. I know there is
 official bindings for C++, but i figured this was a better way to learn.
 ### ```app/*/cpu_workloads```
-Contains the code for the work to be done on the cpu in phases 2, 3 and 4.
+Contains the code for the work to be done on the cpu in phases 2, 3, 4 and 7.
 - ```phase_2.cc```: matrix addition on cpu
 - ```phase_3.cc```: single threaded zncc
 - ```phase_3_vectorized.cc```: single threaded zncc, utilizing the SSE and AVX extensions for vectorization
 - ```phase_4.cc```: multithreaded zncc via threadpool
 - ```phase_4_vectorized.cc```: multithreaded zncc via threadpool, utilizing the SSE and AVX extensions for vectorization
+- ```phase_7.cc```: multithreaded zncc via threadpool, utilizing simd and integral images.
 ### ```app/*/opencl_workloads```
 Contains the code for work to be done via opencl in phase 1,2,5,6 and 7.
 - ```phase_1.cc```: opencl hello world
@@ -41,6 +42,7 @@ Contains the code for work to be done via opencl in phase 1,2,5,6 and 7.
 - ```phase_6_image2d_t.cc```: ZNCC implementation using the image2d opencl object.
 - ```phase_6_vectorized.cc```: ZNCC implementation doing local tiling and vectorized loads.
 - ```phase_6_tiled.cc```: ZNCC implementation doing local tiling and focusing on register pressure.
+- ```phase_7.cc```: ZNCC implementation utilizing local tiling, vectorization and integral images.
 ### ```app/*/*```
 Supporting functionality for executing the different workloads:
 - ```combined_workloads.cc```: Collects different workloads under single functions, for easy running.

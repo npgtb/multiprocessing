@@ -1,9 +1,10 @@
 #include <math.h>
 #include <immintrin.h>
 #include <scope_timer.h>
-#include <cpu_workloads/phase_4.h>
+#include <cpu_workloads/phase_7.h>
 
-namespace mp::cpu_workloads::phase_4_vectorized{
+
+namespace mp::cpu_workloads::phase_7{
 
     //Chunk processor for resize_image
     void resize_image_work_chunk(
@@ -185,42 +186,112 @@ namespace mp::cpu_workloads::phase_4_vectorized{
         return false;
     }
 
-#if defined(__SSE4_1__)
-    //Calculates mean from the window in the given image. Expects grayscale image
-    float calculate_window_mean_sse_128(int x, int y, int radius, Image& image){
-        uint8_t* pixels = static_cast<uint8_t*>(image.pixels);
-        int window_size = ((radius *2) + 1);
-        int pixel_count = window_size * window_size;
-        float sum = 0;
-        constexpr int load_size = 8;
-        
-        __m128i zero = _mm_setzero_si128();
-        for(int yr = -radius; yr <= radius; ++yr){
-            int cy = image.clamp_y(y + yr) * image.w;
-            int xr = -radius;
-            //Can we load 8 at time, and do we need to clamp?
-            for(; 
-                    x + load_size < image.w && 
-                    xr + load_size <= radius &&
-                    x + xr >= 0; 
-                    xr += load_size
-            ){
-                int load_index = cy + (x + xr);
-                //load first 8 grayscale values as int64
-                __m128i pixel_values = _mm_cvtsi64_si128(*(uint64_t*)(pixels + load_index));
-                //Sum both lanes to the finalsum
-                sum += _mm_cvtsi128_si32(_mm_sad_epu8(pixel_values, zero));
-            }
-            //Handle remainder
-            for(; xr <= radius; ++xr){
-                int cx = image.clamp_x(x + xr);
-                sum += pixels[cy + cx];
+    //First pass of the integral image process: ROW
+    void calculate_integral_map_row_work_chunk(
+        Image& img, Image& map, uint8_t * pixels, uint32_t * sum_map_data, 
+        const int radius, const int chunk_start, const int chunk_end
+    ){
+        //Pad the halo
+        const int cs_offset = chunk_start - radius;
+        for(int img_y = cs_offset, map_y = chunk_start; map_y < chunk_end; ++img_y, ++map_y){
+            uint32_t row_sum = 0;
+            const int map_row = map_y * map.w;
+            //For image clamp y => Replication
+            const int img_row = img.clamp_y(img_y) * img.w; 
+            for(int img_x = -radius, map_x = 0; map_x < map.w; ++img_x, ++map_x){
+                //For image clamp x => Replication
+                const int img_i = img_row + img.clamp_x(img_x);
+                const int map_i = map_row + map_x;
+                //Get pixel value
+                row_sum += pixels[img_i];
+                //Store running values for the pixel
+                sum_map_data[map_i] = row_sum;
             }
         }
-        return sum / pixel_count;
-        return 0.f;
     }
 
+    //Second pass of the integral image process: COLUMNS
+    void calculate_integral_map_column_work_chunk(
+        Image& img, Image& map, uint32_t * sum_map_data, 
+        const int radius, const int chunk_start, const int chunk_end
+    ){
+        for(int map_x = chunk_start; map_x < chunk_end; ++map_x){
+            uint32_t column_sum = 0;
+            for(int map_y = 0; map_y < map.h; ++map_y){
+                const int map_i = (map_y * map.w) + map_x;
+                //Get column values
+                column_sum += sum_map_data[map_i];
+                //Store running values for the pixel
+                sum_map_data[map_i] = column_sum;
+            }
+        }
+    }
+
+    //Precalculate the integral maps for the image
+    //https://en.wikipedia.org/wiki/Summed-area_table
+    bool calculate_integral_map(Image& image, Image& sum_map, const int radius, ThreadPool& pool){
+        if(image.format == ImageFormat::GRAY){
+            mp::ScopeTimer exec_timer("mp::zncc_c_multi_thread::calculate_integral_map");
+            //Allocate memory for the integral maps, account for halo
+            const int window_diameter = (radius << 1);
+            const int map_width = (image.w + window_diameter);
+            const int map_height = (image.h + window_diameter);
+            const int map_data_size = (map_width * map_height) * sizeof(uint32_t);
+            uint32_t * sum_map_data = static_cast<uint32_t*>(malloc(map_data_size));
+            if(sum_map_data){
+                sum_map.set(sum_map_data, map_width, map_height, ImageFormat::INTEGRAL);
+                uint8_t * pixels = static_cast<uint8_t*>(image.pixels);
+                //Queue row pass
+                queue_linear_work(
+                    pool, map_height, calculate_integral_map_row_work_chunk,
+                    std::ref(image), std::ref(sum_map), pixels, sum_map_data, radius
+                );
+                //Sync for the 2nd pass
+                pool.wait_for_work();
+                //Queue column pass
+                queue_linear_work(
+                    pool, map_width, calculate_integral_map_column_work_chunk,
+                     std::ref(image), std::ref(sum_map), sum_map_data, radius
+                );
+                pool.wait_for_work();
+                //Store data in the maps
+                return true;
+            }
+
+            if(sum_map_data){free(sum_map_data);}
+        }
+        return false;
+    }
+
+    //Returns the map integral of the area as described in
+    //https://en.wikipedia.org/wiki/Summed-area_table
+    uint32_t integral_map_sum(
+        Image& map, uint32_t* map_pixels,
+        const int center_x, const int center_y, const int radius
+    ){
+        const int x = center_x - radius;
+        const int y = center_y - radius;
+        const int x1 = center_x + radius;
+        const int y1 = center_y + radius;
+
+        uint32_t D = map_pixels[(y1 * map.w) + x1];
+        uint32_t C = map_pixels[(y1 * map.w) + x];
+        uint32_t B = map_pixels[(y * map.w) + x1];
+        uint32_t A = map_pixels[(y * map.w) + x]; 
+        return D + A - B - C; 
+    }
+
+    //Returns the mean of the given area
+    //https://en.wikipedia.org/wiki/Summed-area_table
+    float integral_mean(
+        Image& map, uint32_t* map_pixels, 
+        const int x, const int y, const int radius 
+    ){
+        const int pixel_count = ((radius << 1) + 1) * ((radius << 1) + 1);
+        return ((float) integral_map_sum(map, map_pixels, x, y, radius)) / pixel_count;
+    }
+
+#if defined(__SSE4_1__)
     //Calculates the ZNCC trough upper and lower sums. Expects grayscaled images
     float calculate_zncc_sse_128(int x, int rx, int y, int radius, float lmean, float rmean, Image& left, Image& right){
         uint8_t* lpixels = static_cast<uint8_t*>(left.pixels);
@@ -309,44 +380,59 @@ namespace mp::cpu_workloads::phase_4_vectorized{
         }
         return 0.f;
     }
-#endif
 
     //Chunk processor for calculate_disparity_map
     void calculate_disparity_map_work_chunk(
-        int window_radius, int min_disparity, int max_disparity, const int disparity_direction, Image& left, Image& right, Image& map, const int chunk_start, const int chunk_end
+        int window_radius, int min_disparity, int max_disparity, const int disparity_direction, 
+        Image& left, Image& right, Image& map, uint8_t* left_pixels, uint8_t* right_pixels,
+        uint8_t* disparity_map_pixels, 
+        uint32_t* lsm_pixels, uint32_t* rsm_pixels,
+        const int chunk_start, const int chunk_end
     ){
-    #if defined(__SSE4_1__)
-        uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
         for(int y = chunk_start; y < chunk_end; ++y){
+            int y_halo = y + window_radius;
             for(int x = 0; x < left.w; ++x){
+                int x_halo = x + window_radius;
                 float max_zncc = -1.f; 
                 uint8_t zncc_max_disparity = 0;
                 //Calculate Left mean
-                float left_mean = calculate_window_mean_sse_128(x, y, window_radius, left);
+                float left_mean = integral_mean(map, lsm_pixels, x_halo, y_halo, window_radius);
                 for(int d = min_disparity; d <= max_disparity; ++d){
-                    int rx = x + (d * disparity_direction);
+                    int displacement = (d*disparity_direction);
+                    int rx = x + displacement;
+                    int rx_halo = x_halo + displacement;
+                    //Stay in bounds of the integral map
+                    if(rx_halo < window_radius || rx_halo > left.w) break;
                     //Right mean into, zncc calculation
-                    float right_mean = calculate_window_mean_sse_128(rx, y, window_radius, right);
+                    float right_mean = integral_mean(map, rsm_pixels, rx_halo, y_halo, window_radius);
                     float zncc = calculate_zncc_sse_128(x, rx, y, window_radius, left_mean, right_mean, left, right);
                     if(zncc > max_zncc){
                         max_zncc = zncc;
                         zncc_max_disparity = d;
                     }
                 }
-                disparity_map_pixels[y * map.w + x] = zncc_max_disparity;
+                disparity_map_pixels[y * left.w + x] = zncc_max_disparity;
             }
         }
-    #endif
     }
-
+#endif
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
-    bool calculate_disparity_map(int window_radius, int min_disparity, int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, ThreadPool& thread_pool, std::string scope_tag){
+    bool calculate_disparity_map(
+        int window_radius, int min_disparity, int max_disparity, const bool left_to_right,
+        Image& ls_map, Image& rs_map, 
+        Image& left, Image& right, Image& map, ThreadPool& thread_pool, 
+        std::string scope_tag
+    ){
+    #if defined(__SSE4_1__)
         if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
             mp::ScopeTimer exec_timer("mp::zncc_c_multi_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
             uint8_t* disparity_map_pixels = static_cast<uint8_t*>(malloc(left.w * left.h));
             if(disparity_map_pixels){
-                map.set(disparity_map_pixels, left.w, left.h, ImageFormat::GRAY);
+                uint8_t* left_pixels = static_cast<uint8_t*>(left.pixels);
+                uint8_t* right_pixels = static_cast<uint8_t*>(right.pixels);
+                uint32_t* lsm_pixels = static_cast<uint32_t*>(ls_map.pixels);
+                uint32_t* rsm_pixels = static_cast<uint32_t*>(rs_map.pixels);
                 int disparity_direction = 1;
                 if(left_to_right){
                     disparity_direction = -1;
@@ -354,13 +440,17 @@ namespace mp::cpu_workloads::phase_4_vectorized{
                 //Threading strat => Split the work into Chunks of X rows.
                 queue_linear_work(
                     thread_pool, left.h, calculate_disparity_map_work_chunk,
-                    window_radius, min_disparity, max_disparity, disparity_direction, std::ref(left), std::ref(right), std::ref(map)
+                    window_radius, min_disparity, max_disparity, disparity_direction,
+                    std::ref(left), std::ref(right), std::ref(ls_map), left_pixels, right_pixels, disparity_map_pixels,
+                    lsm_pixels, rsm_pixels
                 );
                 //Wait for work to finish
                 thread_pool.wait_for_work();
+                map.set(disparity_map_pixels, left.w, left.h, ImageFormat::GRAY);
                 return true;
             }
         }
+    #endif
         return false;
     }
 

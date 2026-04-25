@@ -114,7 +114,6 @@ uchar calculate_window_non_zero_middle(int x, int y, int radius, __global uchar*
     for(int yr = -radius; yr <= radius; ++yr){
         int cy = clamp(y + yr, 0, height-1) * width;
         for(int xr = -radius; xr <= radius; ++xr){
-            //Edge handling => nearest valid pixel
             int cx = clamp(x + xr, 0, width-1);
             uchar pixel_value = pixels[cy + cx];
             if(pixel_value > 0){

@@ -1,6 +1,7 @@
 #ifndef MP_COURSE_THREAD_POOL_H
 #define MP_COURSE_THREAD_POOL_H
 
+#include <cmath>
 #include <queue>
 #include <mutex>
 #include <thread>
@@ -9,7 +10,7 @@
 #include <functional>
 #include <condition_variable>
 
-namespace mp_course{
+namespace mp{
     class ThreadPool{
         public:
             //Initialize empty threadpool
@@ -59,6 +60,36 @@ namespace mp_course{
             //Manager function for the worker threads
             void management(std::stop_token token);
     };
+
+    //Generic function for queueing linear work into the threadpool
+    template <typename Function, typename... Arguments>
+    void queue_linear_work(
+        ThreadPool& thread_pool, int work_size,
+        Function&& work, Arguments&&... arguments
+    ){
+        if(work_size > 0){
+            //Calculate work size
+            const int thread_count = std::min(work_size, thread_pool.pool_size());
+            const int work_chunk_size = std::floor(work_size /  thread_count);
+            //Queue work
+            for(int i = 0; i < (thread_count-1); ++i){
+                const int chunk_start = (work_chunk_size * i);
+                const int chunk_end = (work_chunk_size * (i+1));
+                thread_pool.queue_work(
+                    std::forward<Function>(work),
+                    std::forward<Arguments>(arguments)...,
+                    chunk_start, chunk_end
+                );
+            }
+            //Queue the remainder of the work into last thread
+            const int remainder_start = work_chunk_size * (thread_count - 1);
+            thread_pool.queue_work(
+            std::forward<Function>(work),
+                std::forward<Arguments>(arguments)...,
+                remainder_start, work_size
+            );
+        }
+    }
 }
 
 #endif

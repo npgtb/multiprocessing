@@ -2,7 +2,7 @@
 #include <iostream>
 #include <thread_pool.h>
 
-namespace mp_course{
+namespace mp{
 
     //Initialize empty threadpool
     ThreadPool::ThreadPool():stop_flag_(false), task_counter_(0){}

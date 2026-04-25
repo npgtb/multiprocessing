@@ -13,15 +13,6 @@ if(ENABLE_ASANLEAK)
     set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address -fsanitize=leak")
 endif()
 
-if(DISABLE_AVX512)
-    message(STATUS "Disabling AVX512 instructions")
-    add_compile_options(-mno-avx512f)
-    add_compile_options(-mno-avx512vl)
-    add_compile_options(-mno-avx512bw)
-    add_compile_options(-mno-avx512dq)
-endif()
-
-
 add_subdirectory(modules)
 add_subdirectory(app)
 

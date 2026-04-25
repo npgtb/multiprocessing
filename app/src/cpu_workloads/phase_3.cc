@@ -3,29 +3,25 @@
 #include <scope_timer.h>
 #include <cpu_workloads/phase_3.h>
 
-namespace mp_course::cpu_workloads::phase_3{
+namespace mp::cpu_workloads::phase_3{
 
     //Resize the image by factor. Takes the nth row and column approach. Expects a RGBA format image.
-    bool resize_image(Image& image, const int factor){
-        if(image.format == ImageFormat::RGBA){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::resize_image");
+    bool resize_image(Image& input, Image& output, const int factor){
+        if(input.format == ImageFormat::RGBA){
+            mp::ScopeTimer exec_timer("mp::zncc_c_single_thread::resize_image");
             //Calculate new dimensions and allocate memory
-            const int new_width = image.w / factor;
-            const int new_height = image.h / factor;
-            uint32_t * original_image = static_cast<uint32_t*>(image.pixels);
+            const int new_width = input.w / factor;
+            const int new_height = input.h / factor;
+            uint32_t * original_image = static_cast<uint32_t*>(input.pixels);
             uint32_t * downsized_image = static_cast<uint32_t*>(malloc(new_width * new_height * sizeof(uint32_t)));
             if(downsized_image){
                 for(int j = 0; j < new_height; ++j){
                     for(int i = 0; i < new_width; ++i){
                         //Strategy: every factor'th column and row
-                        downsized_image[j * new_width + i] = original_image[(j*factor) * image.w + (i * factor)];
+                        downsized_image[j * new_width + i] = original_image[(j*factor) * input.w + (i * factor)];
                     }
                 }
-                original_image = nullptr;
-                image.free_memory();
-                image.w = new_width;
-                image.h = new_height;
-                image.pixels = static_cast<void*>(downsized_image);
+                output.set(downsized_image, new_width, new_height, ImageFormat::RGBA);
                 return true;
             }
         }
@@ -35,7 +31,7 @@ namespace mp_course::cpu_workloads::phase_3{
     //Grayscales the image. Expects a RGBA format image and turns image to GRAY format.
     bool grayscale_image(Image& image){
         if(image.format == ImageFormat::RGBA){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::grayscale_image");
+            mp::ScopeTimer exec_timer("mp::zncc_c_single_thread::grayscale_image");
             //Set modifiers and allocate memory
             const int memory_size = image.w * image.h;
             constexpr int red_shift = 24, green_shift = 16, blue_shift = 8;
@@ -54,10 +50,7 @@ namespace mp_course::cpu_workloads::phase_3{
                         )
                     );
                 }
-                rgba_pixels = nullptr;
-                image.free_memory();
-                image.pixels = static_cast<void*>(grayscaled_pixels);
-                image.format = ImageFormat::GRAY;
+                image.set(grayscaled_pixels, image.w, image.h, ImageFormat::GRAY);
                 return true;
             }
         }
@@ -73,7 +66,6 @@ namespace mp_course::cpu_workloads::phase_3{
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = image.clamp_y(y + yr) * image.w;
             for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
                 int cx = image.clamp_x(x + xr);
                 sum += pixels[cy + cx];
             }
@@ -90,10 +82,9 @@ namespace mp_course::cpu_workloads::phase_3{
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = left.clamp_y(y + yr) * left.w;
             for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
                 int lcx = left.clamp_x(x + xr);
                 int rcx = right.clamp_x(rx + xr);
-                //Calculate difference
+                //Normalize brightness with means
                 float l_diff = lpixels[cy + lcx] - lmean;
                 float r_diff = rpixels[cy + rcx] - rmean;
                 //Adjust upper and lower sums
@@ -113,31 +104,26 @@ namespace mp_course::cpu_workloads::phase_3{
     //Calculates the disparity using the ZNCC algo. Calculates disparity shift from left image to right image, storing values in map image.
     bool calculate_disparity_map(const int window_radius, const int min_disparity, const int max_disparity, const bool left_to_right, Image& left, Image& right, Image& map, std::string scope_tag){
         if(left.w == right.w && left.h == right.h && left.format == ImageFormat::GRAY && right.format == ImageFormat::GRAY && window_radius > 0){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::calculate_disparity_map_" + scope_tag);
+            mp::ScopeTimer exec_timer("mp::zncc_c_single_thread::calculate_disparity_map_" + scope_tag);
             //Allocate disparity map
-            map.free_memory();
-            map.w = left.w; map.h = left.h;
-            map.format = ImageFormat::GRAY;
-            map.pixels = malloc(map.w * map.h);
-            if(map.pixels){
-                uint8_t* disparity_map_pixels = static_cast<uint8_t*>(map.pixels);
+            uint8_t* disparity_map_pixels = static_cast<uint8_t*>(malloc(left.w * left.h));
+            if(disparity_map_pixels){
+                map.set(disparity_map_pixels, left.w, left.h, ImageFormat::GRAY);
                 int disparity_direction = 1;
                 if(left_to_right){
                     disparity_direction = -1;
                 }
-                //Calculate ZNCC
                 for(int y = 0; y < left.h; ++y){
                     for(int x = 0; x < left.w; ++x){
                         float max_zncc = -1.f; 
                         uint8_t zncc_max_disparity = 0;
                         //Calculate Left mean
                         float left_mean = calculate_window_mean(x, y, window_radius, left);
-                        //Right window x coordinate: x - disparity
                         for(int d = min_disparity; d <= max_disparity; ++d){
                             int rx = x + (d * disparity_direction);
+                            //Calculate right mean and zncc score
                             float right_mean = calculate_window_mean(rx, y, window_radius, right);
                             float zncc = calculate_zncc(x, rx, y, window_radius, left_mean, right_mean, left, right);
-                            //See if we have new highscore for zncc
                             if(zncc > max_zncc){
                                 max_zncc = zncc;
                                 zncc_max_disparity = d;
@@ -162,7 +148,6 @@ namespace mp_course::cpu_workloads::phase_3{
         for(int yr = -radius; yr <= radius; ++yr){
             int cy = image.clamp_y(y + yr) * image.w;
             for(int xr = -radius; xr <= radius; ++xr){
-                //Edge handling => nearest valid pixel
                 int cx = image.clamp_x(x + xr);
                 uint8_t pixel_value = pixels[cy + cx];
                 if(pixel_value > 0){
@@ -206,30 +191,25 @@ namespace mp_course::cpu_workloads::phase_3{
             left_disparity.format == ImageFormat::GRAY && right_disparity.format == ImageFormat::GRAY &&
             left_disparity.w == right_disparity.w && left_disparity.h == right_disparity.h
         ){
-            mp_course::ScopeTimer exec_timer("mp_course::zncc_c_single_thread::cross_check_occulsion_disparity_maps");
+            mp::ScopeTimer exec_timer("mp::zncc_c_single_thread::cross_check_occulsion_disparity_maps");
             //reserve space for the post processed map
-            pp_disparity.free_memory();
-            pp_disparity.pixels = malloc(left_disparity.w * left_disparity.h);
-            if(pp_disparity.pixels){
-                pp_disparity.format = ImageFormat::GRAY;
-                pp_disparity.w = left_disparity.w;
-                pp_disparity.h = left_disparity.h;
+            uint8_t * pp_pixels = static_cast<uint8_t*>(malloc(left_disparity.w * left_disparity.h));
+            if(pp_pixels){
+                pp_disparity.set(pp_pixels, left_disparity.w, left_disparity.h, ImageFormat::GRAY);
                 uint8_t * left_pixels = static_cast<uint8_t*>(left_disparity.pixels);
                 uint8_t * right_pixels = static_cast<uint8_t*>(right_disparity.pixels);
-                uint8_t * pp_pixels = static_cast<uint8_t*>(pp_disparity.pixels);
-
-                //Cross check and occuld
                 for(int y = 0; y < left_disparity.h; ++y){
                     for(int x = 0; x < left_disparity.w; ++x){ 
+                        //Pull disparity L=>R and R=>L
                         uint8_t disparity_value_l = left_pixels[y * left_disparity.w + x];
-                        //In the right map, we move to the left disparity_value_l mutch
                         uint8_t disparity_value_r = 0;
                         if(x - disparity_value_l >= 0){
                             disparity_value_r = right_pixels[y * left_disparity.w + x - disparity_value_l];
                         }
                         uint8_t final_value = disparity_value_l;
-                        //Cross-check and occuld
+                        //Cross-check and occulsion
                         if(abs(disparity_value_l - disparity_value_r) > threshold_value || final_value == 0){
+                            //Get the window middle value as filler
                             final_value = calculate_window_non_zero_middle(x, y, window_radius, left_disparity);
                         }
                         pp_pixels[y * left_disparity.w + x] = grayscale_disparity(min_disparity, max_disparity, final_value);
