@@ -44,6 +44,7 @@ Contains the code for work to be done via opencl in phase 1,2,5,6 and 7.
 - ```phase_6_tiled.cc```: ZNCC implementation doing local tiling.
 - ```phase_7_integral.cc```: ZNCC implementation utilizing local tiling, vectorization, compile options/injection and integral images.
 - ```phase_7_integral_aps.cc```: Utilizes aps scans to speed up the integral image calculations
+- ```phase_7_integral_aps_cl.cc```: Utilizes built in OpenCL workgroup scan functions for the APS
 ### ```data/kernels/*```
 - ```phase_1.cl```: Opencl Kernels: Opencl hello world
 - ```phase_2.cl```: Opencl Kernels: Matrix addition.
@@ -52,7 +53,8 @@ Contains the code for work to be done via opencl in phase 1,2,5,6 and 7.
 - ```phase_6_vectorized.cl```: Opencl Kernels: ZNCC implementation doing local tiling and vectorized loads.
 - ```phase_6_tiled.cl```: Opencl Kernels: ZNCC implementation doing local tiling.
 - ```phase_7_integral.cl```: Opencl Kernels: ZNCC implementation utilizing local tiling, vectorization, and integral images.
-- ```phase_7_integral_aps.cl```: Opencl Kernels: Utilizes aps scans to speed up the integral image calculations
+- ```phase_7_integral_aps.cl```: Opencl Kernels: Utilizes aps scan to speed up the integral image calculations
+- ```phase_7_integral_aps_cl.cl```: Opencl Kernels: Utilizes built in OpenCL workgroup scan functions for the APS
 ### ```app/*/*```
 Supporting functionality for executing the different workloads:
 - ```combined_workloads.cc```: Collects different workloads under single functions, for easy running.
