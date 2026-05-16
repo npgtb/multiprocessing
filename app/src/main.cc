@@ -8,7 +8,7 @@
 
 //Run work
 void run_work(const std::string& left, const std::string& right, mp::ThreadPool& thread_pool){
-    constexpr int resize_factor = 4, window_radius = 6, min_disparity = 0, max_disparity = 65, cross_check_threshold = 8, sample_count = 50;
+    constexpr int resize_factor = 4, window_radius = 4, min_disparity = 0, max_disparity = 65, cross_check_threshold = 8, sample_count = 1;
     mp::gpu_workloads::run_hello_world_workload();
     mp::gpu_workloads::run_list_info_workload();
     mp::run_combined_add_matrix_workload(sample_count);
