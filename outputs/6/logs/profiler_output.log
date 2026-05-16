@@ -1,0 +1,565 @@
+    [INFO] Thread pool initialized to 12 threads
+    [INFO] prefered_device - Found a dedicated GPU: NVIDIA GeForce RTX 5060 Ti
+    [INFO] hello_world Kernel Output: hello, world
+    [INFO] Platform count: 1
+    [INFO] Platform vendor: NVIDIA Corporation
+    [INFO] Platform name: NVIDIA CUDA
+    [INFO] Platform profile: FULL_PROFILE
+    [INFO] Platform version: OpenCL 3.0 CUDA 13.2.82
+    [INFO] Device count: 1
+
+    [INFO] Device name: NVIDIA GeForce RTX 5060 Ti
+    [INFO] Device type:  (GPU) (ALL)
+    [INFO] Device hardware version: OpenCL 3.0 CUDA
+    [INFO] Device driver version: 595.71.05
+    [INFO] Device openCL_C version: OpenCL C 1.2 
+    [INFO] Device Parallel Compute units: 36
+    [INFO] Device local memory type: LOCAL
+    [INFO] Device max local memory size: 49152
+    [INFO] Device max clock frequency: 2602
+    [INFO] Device max constant buffer size: 65536
+    [INFO] Device max work group size: 1024
+    [INFO] Device max work item sizes: 1024,1024,64
+    [INFO] CPU result checksum: 656700.000000
+    [INFO] OpenCL result checksum: 656700.000000
+    [INFO] Window radious / Disparity range: (6,65)
+    [INFO] Local memory tile size L/R (28,20), (93,20)
+    [INFO] Local memory allocation L/R (560,1860)
+    [INFO] Integral local memory allocation (1024)
+
+--------[SEGMENT START] PHASE 1 - opencl_workload_hello_world--------
+----[SCOPE START] hello_world_load----
+    [HOST] hello_world_load Avg 95.8094ms,  Middle 95.8094ms
+----[SCOPE END] total host: 95.8094 ms, total device: 0 ms----
+----[SCOPE START] hello_world_setup----
+    [HOST] hello_world_setup Avg 0.004128ms,  Middle 0.004128ms
+----[SCOPE END] total host: 0.004128 ms, total device: 0 ms----
+----[SCOPE START] hello_world_run----
+    [DEVICE ADDITIONAL] Kernel execution [QUEUE to SUBMIT] Avg 0.002464ms, Middle 0.002464ms
+    [DEVICE ADDITIONAL] Kernel execution [SUBMIT to START] Avg 0.01248ms, Middle 0.01248ms
+    [DEVICE ADDITIONAL] Kernel execution [QUEUE to END] Avg 0.018656ms, Middle 0.018656ms
+    [DEVICE] Kernel execution [EXECUTION] Avg 0.003712ms, Middle 0.003712ms
+    [DEVICE ADDITIONAL] Buffer read [QUEUE to SUBMIT] Avg 0.006432ms, Middle 0.006432ms
+    [DEVICE ADDITIONAL] Buffer read [SUBMIT to START] Avg 0.006816ms, Middle 0.006816ms
+    [DEVICE ADDITIONAL] Buffer read [QUEUE to END] Avg 0.014304ms, Middle 0.014304ms
+    [DEVICE] Buffer read [EXECUTION] Avg 0.001056ms, Middle 0.001056ms
+    [HOST] hello_world_run Avg 0.117962ms,  Middle 0.117962ms
+----[SCOPE END] total host: 0.117962 ms, total device: 0.004768 ms----
+--------[SEGMENT END] total host: 95.9315 ms, total device: 0.004768 ms--------
+
+--------[SEGMENT START] PHASE 2 - cpu_add_matrix--------
+----[SCOPE START] add_matrix----
+    [HOST] add_matrix Avg 0.00028638ms,  Middle 0.0001955ms
+----[SCOPE END] total host: 0.00028638 ms, total device: 0 ms----
+--------[SEGMENT END] total host: 0.00028638 ms, total device: 0 ms--------
+
+--------[SEGMENT START] PHASE 2 - opencl_workload_add_matrix--------
+----[SCOPE START] add_matrix_initialize----
+    [HOST] add_matrix_initialize Avg 84.1249ms,  Middle 84.1249ms
+----[SCOPE END] total host: 84.1249 ms, total device: 0 ms----
+----[SCOPE START] add_matrix_pipeline----
+    [DEVICE ADDITIONAL] Pipeline | matrix one write [QUEUE to SUBMIT] Avg 0.00188288ms, Middle 0.001856ms
+    [DEVICE ADDITIONAL] Pipeline | matrix one write [SUBMIT to START] Avg 0.0028224ms, Middle 0.002688ms
+    [DEVICE ADDITIONAL] Pipeline | matrix one write [QUEUE to END] Avg 0.0051296ms, Middle 0.005024ms
+    [DEVICE] Pipeline | matrix one write [EXECUTION] Avg 0.00042432ms, Middle 0.000416ms
+    [DEVICE ADDITIONAL] Pipeline | matrix two write [QUEUE to SUBMIT] Avg 0.00183232ms, Middle 0.001824ms
+    [DEVICE ADDITIONAL] Pipeline | matrix two write [SUBMIT to START] Avg 0.00248512ms, Middle 0.002432ms
+    [DEVICE ADDITIONAL] Pipeline | matrix two write [QUEUE to END] Avg 0.00458112ms, Middle 0.004512ms
+    [DEVICE] Pipeline | matrix two write [EXECUTION] Avg 0.00026368ms, Middle 0.000256ms
+    [DEVICE ADDITIONAL] Pipeline | matrix addition [QUEUE to SUBMIT] Avg 0.00163264ms, Middle 0.001632ms
+    [DEVICE ADDITIONAL] Pipeline | matrix addition [SUBMIT to START] Avg 0.00253952ms, Middle 0.002432ms
+    [DEVICE ADDITIONAL] Pipeline | matrix addition [QUEUE to END] Avg 0.00768704ms, Middle 0.0072ms
+    [DEVICE] Pipeline | matrix addition [EXECUTION] Avg 0.00351488ms, Middle 0.003344ms
+    [DEVICE ADDITIONAL] Pipeline | matrix read [QUEUE to SUBMIT] Avg 0.0022272ms, Middle 0.002112ms
+    [DEVICE ADDITIONAL] Pipeline | matrix read [SUBMIT to START] Avg 0.00273792ms, Middle 0.002752ms
+    [DEVICE ADDITIONAL] Pipeline | matrix read [QUEUE to END] Avg 0.00563584ms, Middle 0.005536ms
+    [DEVICE] Pipeline | matrix read [EXECUTION] Avg 0.00067072ms, Middle 0.00064ms
+    [HOST] add_matrix_pipeline Avg 0.0743254ms,  Middle 0.0725365ms
+----[SCOPE END] total host: 0.0743254 ms, total device: 0.0048736 ms----
+--------[SEGMENT END] total host: 84.1993 ms, total device: 0.0048736 ms--------
+
+--------[SEGMENT START] PHASE 3 - ZNCC_SINGLETHREAD--------
+----[SCOPE START] mp::zncc_c_single_thread::resize_image----
+    [HOST] mp::zncc_c_single_thread::resize_image Avg 0.377396ms,  Middle 0.370026ms
+----[SCOPE END] total host: 0.377396 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::grayscale_image----
+    [HOST] mp::zncc_c_single_thread::grayscale_image Avg 0.731316ms,  Middle 0.728885ms
+----[SCOPE END] total host: 0.731316 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::calculate_disparity_map_left----
+    [HOST] mp::zncc_c_single_thread::calculate_disparity_map_left Avg 6295.57ms,  Middle 6296.8ms
+----[SCOPE END] total host: 6295.57 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::calculate_disparity_map_right----
+    [HOST] mp::zncc_c_single_thread::calculate_disparity_map_right Avg 6296.73ms,  Middle 6298.3ms
+----[SCOPE END] total host: 6296.73 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::cross_check_occulsion_disparity_maps----
+    [HOST] mp::zncc_c_single_thread::cross_check_occulsion_disparity_maps Avg 4.33654ms,  Middle 4.32933ms
+----[SCOPE END] total host: 4.33654 ms, total device: 0 ms----
+--------[SEGMENT END] total host: 12597.7 ms, total device: 0 ms--------
+
+--------[SEGMENT START] PHASE 3 - ZNCC_SINGLETHREAD_VECTORIZED--------
+----[SCOPE START] mp::zncc_c_single_thread::resize_image----
+    [HOST] mp::zncc_c_single_thread::resize_image Avg 0.363883ms,  Middle 0.366594ms
+----[SCOPE END] total host: 0.363883 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::grayscale_image_avx_512----
+    [HOST] mp::zncc_c_single_thread::grayscale_image_avx_512 Avg 0.0379423ms,  Middle 0.037451ms
+----[SCOPE END] total host: 0.0379423 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::calculate_disparity_map_left----
+    [HOST] mp::zncc_c_single_thread::calculate_disparity_map_left Avg 3401.15ms,  Middle 3400.48ms
+----[SCOPE END] total host: 3401.15 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::calculate_disparity_map_right----
+    [HOST] mp::zncc_c_single_thread::calculate_disparity_map_right Avg 3389.64ms,  Middle 3388.98ms
+----[SCOPE END] total host: 3389.64 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_single_thread::cross_check_occulsion_disparity_maps----
+    [HOST] mp::zncc_c_single_thread::cross_check_occulsion_disparity_maps Avg 4.31222ms,  Middle 4.29568ms
+----[SCOPE END] total host: 4.31222 ms, total device: 0 ms----
+--------[SEGMENT END] total host: 6795.51 ms, total device: 0 ms--------
+
+--------[SEGMENT START] PHASE 4 - ZNCC_MULTITHREAD--------
+----[SCOPE START] mp::zncc_c_multi_thread::resize_image----
+    [HOST] mp::zncc_c_multi_thread::resize_image Avg 0.17314ms,  Middle 0.174122ms
+----[SCOPE END] total host: 0.17314 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::grayscale_image----
+    [HOST] mp::zncc_c_multi_thread::grayscale_image Avg 0.149935ms,  Middle 0.139452ms
+----[SCOPE END] total host: 0.149935 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_disparity_map_left----
+    [HOST] mp::zncc_c_multi_thread::calculate_disparity_map_left Avg 999.299ms,  Middle 992.626ms
+----[SCOPE END] total host: 999.299 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_disparity_map_right----
+    [HOST] mp::zncc_c_multi_thread::calculate_disparity_map_right Avg 1002.23ms,  Middle 995.215ms
+----[SCOPE END] total host: 1002.23 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps----
+    [HOST] mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps Avg 0.89391ms,  Middle 0.912219ms
+----[SCOPE END] total host: 0.89391 ms, total device: 0 ms----
+--------[SEGMENT END] total host: 2002.74 ms, total device: 0 ms--------
+
+--------[SEGMENT START] PHASE 4 - ZNCC_MULTITHREAD_VECTORIZED--------
+----[SCOPE START] mp::zncc_c_multi_thread::resize_image----
+    [HOST] mp::zncc_c_multi_thread::resize_image Avg 0.177346ms,  Middle 0.178675ms
+----[SCOPE END] total host: 0.177346 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::grayscale_image----
+    [HOST] mp::zncc_c_multi_thread::grayscale_image Avg 0.0360205ms,  Middle 0.0353415ms
+----[SCOPE END] total host: 0.0360205 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_disparity_map_left----
+    [HOST] mp::zncc_c_multi_thread::calculate_disparity_map_left Avg 594.02ms,  Middle 589.846ms
+----[SCOPE END] total host: 594.02 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_disparity_map_right----
+    [HOST] mp::zncc_c_multi_thread::calculate_disparity_map_right Avg 591.108ms,  Middle 589.663ms
+----[SCOPE END] total host: 591.108 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps----
+    [HOST] mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps Avg 0.883285ms,  Middle 0.873141ms
+----[SCOPE END] total host: 0.883285 ms, total device: 0 ms----
+--------[SEGMENT END] total host: 1186.22 ms, total device: 0 ms--------
+
+--------[SEGMENT START] PHASE 7 - ZNCC_MULTITHREAD_INTEGRAL--------
+----[SCOPE START] mp::zncc_c_multi_thread::resize_image----
+    [HOST] mp::zncc_c_multi_thread::resize_image Avg 0.174242ms,  Middle 0.17059ms
+----[SCOPE END] total host: 0.174242 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::grayscale_image----
+    [HOST] mp::zncc_c_multi_thread::grayscale_image Avg 0.0353374ms,  Middle 0.0346555ms
+----[SCOPE END] total host: 0.0353374 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_integral_map----
+    [HOST] mp::zncc_c_multi_thread::calculate_integral_map Avg 0.285674ms,  Middle 0.270583ms
+----[SCOPE END] total host: 0.285674 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_disparity_map_left----
+    [HOST] mp::zncc_c_multi_thread::calculate_disparity_map_left Avg 354.238ms,  Middle 350.593ms
+----[SCOPE END] total host: 354.238 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::calculate_disparity_map_right----
+    [HOST] mp::zncc_c_multi_thread::calculate_disparity_map_right Avg 354.332ms,  Middle 350.691ms
+----[SCOPE END] total host: 354.332 ms, total device: 0 ms----
+----[SCOPE START] mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps----
+    [HOST] mp::zncc_c_multi_thread::cross_check_occulsion_disparity_maps Avg 0.845755ms,  Middle 0.819846ms
+----[SCOPE END] total host: 0.845755 ms, total device: 0 ms----
+--------[SEGMENT END] total host: 709.911 ms, total device: 0 ms--------
+
+--------[SEGMENT START] PHASE 5 - ZNCC_OPENCL_GLOBAL--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 82.7883ms,  Middle 82.7883ms
+----[SCOPE END] total host: 82.7883 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00438784ms, Middle 0.004336ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.0429702ms, Middle 0.0412ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.07822ms, Middle 1.05026ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 1.03086ms, Middle 1.00418ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00404096ms, Middle 0.003776ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 1.03279ms, Middle 1.0028ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 2.07454ms, Middle 2.03651ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 1.03771ms, Middle 0.9952ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.00214144ms, Middle 0.002032ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 2.01954ms, Middle 1.96682ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 2.04548ms, Middle 1.98797ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.0237997ms, Middle 0.023568ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.00195968ms, Middle 0.001888ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 1.9943ms, Middle 1.93811ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 2.01675ms, Middle 1.96366ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0204928ms, Middle 0.017984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.00198784ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 2.0064ms, Middle 1.95285ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 2.0146ms, Middle 1.95552ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.0062144ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00202432ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 2.00399ms, Middle 1.94531ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 2.01223ms, Middle 1.95403ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.00621568ms, Middle 0.00568ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.0020768ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 1.95948ms, Middle 1.91064ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 16.8563ms, Middle 16.7901ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 14.8947ms, Middle 14.8158ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.00197568ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 16.8453ms, Middle 16.78ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 32.1643ms, Middle 32.0572ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 15.3171ms, Middle 15.2044ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.00200768ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 32.1535ms, Middle 32.0469ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 32.4064ms, Middle 32.2936ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.250899ms, Middle 0.243776ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.0031968ms, Middle 0.002992ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 32.3841ms, Middle 32.2786ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 32.4013ms, Middle 32.2945ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.013936ms, Middle 0.01312ms
+    [HOST] pipeline Avg 33.0866ms,  Middle 32.9552ms
+----[SCOPE END] total host: 33.0866 ms, total device: 32.6019 ms----
+--------[SEGMENT END] total host: 115.875 ms, total device: 32.6019 ms--------
+
+--------[SEGMENT START] PHASE 6 - ZNCC_OPENCL_TILED--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 58.9254ms,  Middle 58.9254ms
+----[SCOPE END] total host: 58.9254 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00465472ms, Middle 0.004576ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.0463456ms, Middle 0.041472ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.06928ms, Middle 1.04298ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 1.01828ms, Middle 0.999056ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00400896ms, Middle 0.003888ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 1.01943ms, Middle 0.997504ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 2.0262ms, Middle 1.99699ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 1.00277ms, Middle 0.985824ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.0021344ms, Middle 0.002032ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 1.97423ms, Middle 1.93934ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 1.99762ms, Middle 1.93733ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.021257ms, Middle 0.02016ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.00192832ms, Middle 0.00192ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 1.948ms, Middle 1.91853ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 1.96818ms, Middle 1.94053ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0182554ms, Middle 0.017968ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.00198656ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 1.95775ms, Middle 1.92995ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 1.96547ms, Middle 1.93755ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.00572672ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00199936ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 1.95492ms, Middle 1.89946ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 1.96277ms, Middle 1.90714ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.0058464ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.00202304ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 1.90374ms, Middle 1.87218ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 10.3571ms, Middle 10.1796ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 8.45135ms, Middle 8.17619ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.00198208ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 10.346ms, Middle 10.1679ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 18.9772ms, Middle 19.0346ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 8.62916ms, Middle 8.65235ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.00197696ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 18.9661ms, Middle 19.0226ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 19.1591ms, Middle 19.2218ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.191034ms, Middle 0.191024ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.00307392ms, Middle 0.002864ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 19.134ms, Middle 19.1881ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 19.1505ms, Middle 19.2041ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.0134778ms, Middle 0.013136ms
+    [HOST] pipeline Avg 19.8359ms,  Middle 19.8642ms
+----[SCOPE END] total host: 19.8359 ms, total device: 19.3572 ms----
+--------[SEGMENT END] total host: 78.7614 ms, total device: 19.3572 ms--------
+
+--------[SEGMENT START] PHASE 6 - ZNCC_OPENCL_VECTORIZED--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 63.0467ms,  Middle 63.0467ms
+----[SCOPE END] total host: 63.0467 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00487424ms, Middle 0.004016ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.041735ms, Middle 0.04064ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.04686ms, Middle 1.04446ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 1.00025ms, Middle 0.994224ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00381056ms, Middle 0.003728ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 1.00142ms, Middle 0.992704ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 2.00615ms, Middle 2.00779ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 1.00092ms, Middle 0.99696ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.00230464ms, Middle 0.002304ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 1.94974ms, Middle 1.93982ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 1.97386ms, Middle 1.96502ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.0218099ms, Middle 0.023248ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.0019744ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 1.92662ms, Middle 1.91981ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 1.94661ms, Middle 1.93997ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0180224ms, Middle 0.017984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.0019744ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 1.93566ms, Middle 1.92894ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 1.94332ms, Middle 1.93661ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.00569024ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00200768ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 1.93256ms, Middle 1.92555ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 1.94026ms, Middle 1.93314ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.0056928ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.00209728ms, Middle 0.002032ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 1.87531ms, Middle 1.86587ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 10.95ms, Middle 10.8439ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 9.07256ms, Middle 8.894ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.0019904ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 10.9389ms, Middle 10.8329ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 19.9539ms, Middle 20.0339ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 9.013ms, Middle 9.09354ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.0019776ms, Middle 0.001968ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 19.9428ms, Middle 20.0215ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 20.0573ms, Middle 20.13ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.112495ms, Middle 0.060992ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.00317248ms, Middle 0.003104ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 20.0321ms, Middle 20.1161ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 20.0492ms, Middle 20.1347ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.0139149ms, Middle 0.01312ms
+    [HOST] pipeline Avg 20.7345ms,  Middle 20.7976ms
+----[SCOPE END] total host: 20.7345 ms, total device: 20.2643 ms----
+--------[SEGMENT END] total host: 83.7812 ms, total device: 20.2643 ms--------
+
+--------[SEGMENT START] PHASE 6 - ZNCC_OPENCL_IMAGE2D_T--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 63.4975ms,  Middle 63.4975ms
+----[SCOPE END] total host: 63.4975 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00566528ms, Middle 0.00488ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.0443603ms, Middle 0.042432ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.36509ms, Middle 1.34682ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 1.31507ms, Middle 1.29755ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00364096ms, Middle 0.003616ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 1.25619ms, Middle 1.23678ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 2.49507ms, Middle 2.47994ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 1.23524ms, Middle 1.22539ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.00217152ms, Middle 0.002128ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 2.38226ms, Middle 2.32058ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 2.4245ms, Middle 2.3643ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.0400698ms, Middle 0.039712ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.00174336ms, Middle 0.001696ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 2.31918ms, Middle 2.28712ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 2.35897ms, Middle 2.33192ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0380518ms, Middle 0.040512ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.00180288ms, Middle 0.00176ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 2.25603ms, Middle 2.22942ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 2.26533ms, Middle 2.23614ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.00749504ms, Middle 0.007744ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00193216ms, Middle 0.00192ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 2.25242ms, Middle 2.22522ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 2.26099ms, Middle 2.22984ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.00663424ms, Middle 0.005712ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.00201536ms, Middle 0.001904ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 2.24673ms, Middle 2.2192ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 18.5703ms, Middle 18.6452ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 16.3216ms, Middle 16.434ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.0018912ms, Middle 0.001888ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 18.555ms, Middle 18.6307ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 34.99ms, Middle 35.1105ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 16.4331ms, Middle 16.3765ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.00176896ms, Middle 0.00176ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 34.9763ms, Middle 35.0957ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 35.3993ms, Middle 35.5055ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.421233ms, Middle 0.419392ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.00405376ms, Middle 0.003744ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 35.3803ms, Middle 35.4852ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 35.399ms, Middle 35.5038ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.0146963ms, Middle 0.014528ms
+    [HOST] pipeline Avg 36.3548ms,  Middle 36.4644ms
+----[SCOPE END] total host: 36.3548 ms, total device: 35.8331 ms----
+--------[SEGMENT END] total host: 99.8523 ms, total device: 35.8331 ms--------
+
+--------[SEGMENT START] PHASE 7 - ZNCC_OPENCL_INTEGRAL--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 60.7682ms,  Middle 60.7682ms
+----[SCOPE END] total host: 60.7682 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00622016ms, Middle 0.005312ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.0425453ms, Middle 0.04088ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.05368ms, Middle 1.03699ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 1.00492ms, Middle 0.988704ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00386304ms, Middle 0.003776ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 1.00214ms, Middle 0.987696ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 2.00893ms, Middle 1.97869ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 1.00292ms, Middle 0.985808ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.0024864ms, Middle 0.002464ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 1.95348ms, Middle 1.92234ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 1.97593ms, Middle 1.94547ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.0199667ms, Middle 0.018832ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.00190848ms, Middle 0.001904ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 1.92419ms, Middle 1.88621ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 1.94227ms, Middle 1.90496ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0161747ms, Middle 0.015936ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.002016ms, Middle 0.00192ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 1.93102ms, Middle 1.8937ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 1.93878ms, Middle 1.90173ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.00574656ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00200704ms, Middle 0.002016ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 1.92737ms, Middle 1.88845ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 1.93515ms, Middle 1.89618ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.00577344ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [QUEUE to SUBMIT] Avg 0.0019552ms, Middle 0.001968ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [SUBMIT to START] Avg 1.82905ms, Middle 1.80526ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [QUEUE to END] Avg 2.04488ms, Middle 2.00166ms
+    [DEVICE] Pipeline | Integral left row [EXECUTION] Avg 0.213872ms, Middle 0.214592ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [QUEUE to SUBMIT] Avg 0.00212736ms, Middle 0.002ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [SUBMIT to START] Avg 1.95299ms, Middle 1.93205ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [QUEUE to END] Avg 2.17008ms, Middle 2.12155ms
+    [DEVICE] Pipeline | Integral right row [EXECUTION] Avg 0.214964ms, Middle 0.214592ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [QUEUE to SUBMIT] Avg 0.00201728ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [SUBMIT to START] Avg 2.15991ms, Middle 2.11256ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [QUEUE to END] Avg 2.24312ms, Middle 2.22061ms
+    [DEVICE] Pipeline | Integral left column [EXECUTION] Avg 0.0811923ms, Middle 0.081472ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [QUEUE to SUBMIT] Avg 0.00198144ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [SUBMIT to START] Avg 2.23381ms, Middle 2.21181ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [QUEUE to END] Avg 2.31652ms, Middle 2.29528ms
+    [DEVICE] Pipeline | Integral right column [EXECUTION] Avg 0.0807264ms, Middle 0.081472ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.00194112ms, Middle 0.00192ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 2.25219ms, Middle 2.22802ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 7.87496ms, Middle 7.64714ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 5.62083ms, Middle 5.34893ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.00198976ms, Middle 0.001968ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 7.8632ms, Middle 7.63555ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 13.7673ms, Middle 13.9048ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 5.90206ms, Middle 5.6377ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.00208576ms, Middle 0.001968ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 13.7555ms, Middle 13.8935ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 13.8771ms, Middle 13.9797ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.119507ms, Middle 0.118336ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.00409536ms, Middle 0.00336ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 13.8526ms, Middle 13.9891ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 13.8701ms, Middle 14.005ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.0134112ms, Middle 0.013088ms
+    [HOST] pipeline Avg 14.9067ms,  Middle 14.9802ms
+----[SCOPE END] total host: 14.9067 ms, total device: 14.3021 ms----
+--------[SEGMENT END] total host: 75.675 ms, total device: 14.3021 ms--------
+
+--------[SEGMENT START] PHASE 7 - ZNCC_OPENCL_INTEGRAL_APS--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 59.0816ms,  Middle 59.0816ms
+----[SCOPE END] total host: 59.0816 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00595648ms, Middle 0.005872ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.0393888ms, Middle 0.03832ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.04382ms, Middle 1.02445ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 0.998474ms, Middle 0.987648ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00380736ms, Middle 0.003744ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 0.995752ms, Middle 0.986128ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 1.99543ms, Middle 1.97893ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 0.995873ms, Middle 0.9844ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.00231936ms, Middle 0.002272ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 1.94183ms, Middle 1.9296ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 1.96547ms, Middle 1.95013ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.0213165ms, Middle 0.022736ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.00198592ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 1.91671ms, Middle 1.90643ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 1.93535ms, Middle 1.9256ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0166541ms, Middle 0.015936ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.00198848ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 1.92401ms, Middle 1.91578ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 1.93174ms, Middle 1.92358ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.00573952ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00197248ms, Middle 0.001968ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 1.91982ms, Middle 1.90763ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 1.92748ms, Middle 1.91795ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.00569344ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [QUEUE to SUBMIT] Avg 0.00204288ms, Middle 0.002016ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [SUBMIT to START] Avg 1.82207ms, Middle 1.81304ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [QUEUE to END] Avg 1.86295ms, Middle 1.85368ms
+    [DEVICE] Pipeline | Integral left row [EXECUTION] Avg 0.0388333ms, Middle 0.038464ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [QUEUE to SUBMIT] Avg 0.00197568ms, Middle 0.001968ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [SUBMIT to START] Avg 1.77161ms, Middle 1.76186ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [QUEUE to END] Avg 1.81415ms, Middle 1.80438ms
+    [DEVICE] Pipeline | Integral right row [EXECUTION] Avg 0.040567ms, Middle 0.040512ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [QUEUE to SUBMIT] Avg 0.00198784ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [SUBMIT to START] Avg 1.80408ms, Middle 1.79298ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [QUEUE to END] Avg 1.86571ms, Middle 1.85728ms
+    [DEVICE] Pipeline | Integral left column [EXECUTION] Avg 0.059648ms, Middle 0.058944ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [QUEUE to SUBMIT] Avg 0.00202624ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [SUBMIT to START] Avg 1.85618ms, Middle 1.84773ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [QUEUE to END] Avg 1.91723ms, Middle 1.90923ms
+    [DEVICE] Pipeline | Integral right column [EXECUTION] Avg 0.0590272ms, Middle 0.058944ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.00201728ms, Middle 0.002ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 1.85471ms, Middle 1.84021ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 7.59722ms, Middle 7.47621ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 5.7405ms, Middle 5.60698ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.00196992ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 7.58519ms, Middle 7.46405ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 13.5128ms, Middle 13.4893ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 5.92559ms, Middle 5.89984ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.00208064ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 13.5011ms, Middle 13.4779ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 13.6228ms, Middle 13.6009ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.11958ms, Middle 0.119488ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.00420864ms, Middle 0.004048ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 13.5963ms, Middle 13.5729ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 13.6145ms, Middle 13.59ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.0139872ms, Middle 0.013088ms
+    [HOST] pipeline Avg 14.6337ms,  Middle 14.6157ms
+----[SCOPE END] total host: 14.6337 ms, total device: 14.0415 ms----
+--------[SEGMENT END] total host: 73.7154 ms, total device: 14.0415 ms--------
+
+--------[SEGMENT START] PHASE 7 - ZNCC_OPENCL_INTEGRAL_APS_CL--------
+----[SCOPE START] initialize----
+    [HOST] initialize Avg 301.645ms,  Middle 301.645ms
+----[SCOPE END] total host: 301.645 ms, total device: 0 ms----
+----[SCOPE START] pipeline----
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to SUBMIT] Avg 0.00642624ms, Middle 0.005248ms
+    [DEVICE ADDITIONAL] Pipeline | write left [SUBMIT to START] Avg 0.0391891ms, Middle 0.038256ms
+    [DEVICE ADDITIONAL] Pipeline | write left [QUEUE to END] Avg 1.06393ms, Middle 1.03677ms
+    [DEVICE] Pipeline | write left [EXECUTION] Avg 1.01831ms, Middle 0.993984ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to SUBMIT] Avg 0.00392448ms, Middle 0.003744ms
+    [DEVICE ADDITIONAL] Pipeline | write right [SUBMIT to START] Avg 1.01435ms, Middle 0.9784ms
+    [DEVICE ADDITIONAL] Pipeline | write right [QUEUE to END] Avg 2.02156ms, Middle 1.96938ms
+    [DEVICE] Pipeline | write right [EXECUTION] Avg 1.00329ms, Middle 0.985376ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to SUBMIT] Avg 0.00234048ms, Middle 0.002256ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [SUBMIT to START] Avg 1.97168ms, Middle 1.93618ms
+    [DEVICE ADDITIONAL] Pipeline | downscale left [QUEUE to END] Avg 1.99571ms, Middle 1.96091ms
+    [DEVICE] Pipeline | downscale left [EXECUTION] Avg 0.0216819ms, Middle 0.022848ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to SUBMIT] Avg 0.00195968ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [SUBMIT to START] Avg 1.94303ms, Middle 1.89869ms
+    [DEVICE ADDITIONAL] Pipeline | downscale right [QUEUE to END] Avg 1.96213ms, Middle 1.93277ms
+    [DEVICE] Pipeline | downscale right [EXECUTION] Avg 0.0171379ms, Middle 0.016944ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to SUBMIT] Avg 0.00201536ms, Middle 0.002016ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [SUBMIT to START] Avg 1.9505ms, Middle 1.92144ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale left [QUEUE to END] Avg 1.9582ms, Middle 1.92914ms
+    [DEVICE] Pipeline | grayscale left [EXECUTION] Avg 0.00568384ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to SUBMIT] Avg 0.00196544ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [SUBMIT to START] Avg 1.94681ms, Middle 1.91821ms
+    [DEVICE ADDITIONAL] Pipeline | grayscale right [QUEUE to END] Avg 1.95447ms, Middle 1.92586ms
+    [DEVICE] Pipeline | grayscale right [EXECUTION] Avg 0.00569408ms, Middle 0.005696ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [QUEUE to SUBMIT] Avg 0.00203072ms, Middle 0.002048ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [SUBMIT to START] Avg 1.84772ms, Middle 1.81315ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left row [QUEUE to END] Avg 1.86982ms, Middle 1.83525ms
+    [DEVICE] Pipeline | Integral left row [EXECUTION] Avg 0.0200691ms, Middle 0.020032ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [QUEUE to SUBMIT] Avg 0.00196864ms, Middle 0.001952ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [SUBMIT to START] Avg 1.78049ms, Middle 1.75146ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right row [QUEUE to END] Avg 1.80249ms, Middle 1.77344ms
+    [DEVICE] Pipeline | Integral right row [EXECUTION] Avg 0.0200288ms, Middle 0.020032ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [QUEUE to SUBMIT] Avg 0.00200192ms, Middle 0.002ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [SUBMIT to START] Avg 1.79222ms, Middle 1.76358ms
+    [DEVICE ADDITIONAL] Pipeline | Integral left column [QUEUE to END] Avg 1.84702ms, Middle 1.81626ms
+    [DEVICE] Pipeline | Integral left column [EXECUTION] Avg 0.0527949ms, Middle 0.0528ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [QUEUE to SUBMIT] Avg 0.0019744ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [SUBMIT to START] Avg 1.83742ms, Middle 1.80896ms
+    [DEVICE ADDITIONAL] Pipeline | Integral right column [QUEUE to END] Avg 1.89063ms, Middle 1.86288ms
+    [DEVICE] Pipeline | Integral right column [EXECUTION] Avg 0.0512378ms, Middle 0.050752ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to SUBMIT] Avg 0.00207808ms, Middle 0.002032ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [SUBMIT to START] Avg 1.82694ms, Middle 1.7927ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map left [QUEUE to END] Avg 7.63107ms, Middle 7.4357ms
+    [DEVICE] Pipeline | Zncc map left [EXECUTION] Avg 5.80205ms, Middle 5.62877ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to SUBMIT] Avg 0.00201024ms, Middle 0.002ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [SUBMIT to START] Avg 7.61811ms, Middle 7.42328ms
+    [DEVICE ADDITIONAL] Pipeline | Zncc map right [QUEUE to END] Avg 13.7811ms, Middle 13.874ms
+    [DEVICE] Pipeline | Zncc map right [EXECUTION] Avg 6.16096ms, Middle 6.23944ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to SUBMIT] Avg 0.00210688ms, Middle 0.001984ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [SUBMIT to START] Avg 13.7688ms, Middle 13.863ms
+    [DEVICE ADDITIONAL] Pipeline | Post process [QUEUE to END] Avg 13.8905ms, Middle 13.9884ms
+    [DEVICE] Pipeline | Post process [EXECUTION] Avg 0.119601ms, Middle 0.118336ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to SUBMIT] Avg 0.00497792ms, Middle 0.004144ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [SUBMIT to START] Avg 13.8629ms, Middle 13.9618ms
+    [DEVICE ADDITIONAL] Pipeline | Map read [QUEUE to END] Avg 13.8815ms, Middle 13.9782ms
+    [DEVICE] Pipeline | Map read [EXECUTION] Avg 0.013623ms, Middle 0.013088ms
+    [HOST] pipeline Avg 14.9259ms,  Middle 14.966ms
+----[SCOPE END] total host: 14.9259 ms, total device: 14.3122 ms----
+--------[SEGMENT END] total host: 316.571 ms, total device: 14.3122 ms--------
+
+[PROFILER END] Total host: 24316.5 ms, total device: 150.722 ms
