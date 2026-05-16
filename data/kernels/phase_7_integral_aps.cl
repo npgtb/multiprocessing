@@ -40,6 +40,13 @@ __kernel void calculate_integral_map_rows(
     const int right, __local ulong* lsm, __local ulong* lsq
 ){
 
+    /*
+     Function code based on:
+     Harris, M., Senggupta, S., & Owens, J. D. (2007).
+     Chapter 39. Parallel Prefix Sum (Scan) with CUDA. NVIDIA Developer.
+     https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
+     */
+
     const int lx = get_local_id(0);
     const int lw = get_local_size(0);
     
@@ -148,6 +155,14 @@ __kernel void calculate_integral_map_columns(
     __global ulong* sum_map_data, __global ulong* square_map_data,
     const int map_h, const int map_w, __local ulong* lsm, __local ulong* lsq
 ){
+
+    /*
+     Function code based on:
+     Harris, M., Senggupta, S., & Owens, J. D. (2007).
+     Chapter 39. Parallel Prefix Sum (Scan) with CUDA. NVIDIA Developer.
+     https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
+     */
+
     const int lx = get_local_id(0);
     const int lw = get_local_size(0);
 
