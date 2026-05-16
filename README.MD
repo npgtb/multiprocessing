@@ -1,0 +1,65 @@
+# MULTIPROCESSING
+Experimentation with opencl multiprocessing
+## DEPENDENCIES
+### ```modules\drawkit``` 
+This module depends on the [SDL3](https://github.com/libsdl-org/SDL) and [SDL3_Image](https://github.com/libsdl-org/SDL_image) projects.
+### ```modules\opencl_wrapper```
+This module depends on the opencl project, specifically the 3.0 version.
+## Building
+The ```CMakePresets.json``` provides a release preset for building with ```Ninja``` build system.
+```phase_3_vectorized.cc```, ```phase_4_vectorized.cc``` and ```phase_7.cc``` utilizes the gcc compile time flags to detect cpu capabilities.
+```
+cmake --preset release
+cmake --build --preset release
+```
+## Running
+The built application expects to be given two image paths as arguments
+```
+./build/release/app/multiprocessing path/to/img0.png path/to/img1.png
+```
+## Output
+The application outputs a detailed description of its activities to the console and to a log file: ```profiler_output.log```. Raw timings are also
+outputted to a .csv file: ```sample_data.csv```. ZNCC result images are output as a .png file to the folder.
+## Code map
+### ```modules\drawkit```
+A pruned SDL based library for handling loading images formats.
+### ```modules\opencl_wrapper```
+A RAII - style C++ wrapping library for the Opencl C-API. I know there is
+official bindings for C++, but i figured this was a better way to learn.
+### ```app/*/cpu_workloads```
+Contains the code for the work to be done on the cpu in phases 2, 3, 4 and 7.
+- ```phase_2.cc```: matrix addition on cpu
+- ```phase_3.cc```: single threaded zncc
+- ```phase_3_vectorized.cc```: single threaded zncc, utilizing the SSE and AVX extensions for vectorization
+- ```phase_4.cc```: multithreaded zncc via threadpool
+- ```phase_4_vectorized.cc```: multithreaded zncc via threadpool, utilizing the SSE and AVX extensions for vectorization
+- ```phase_7.cc```: multithreaded zncc via threadpool, utilizing simd and integral images.
+### ```app/*/opencl_workloads```
+Contains the code for work to be done via opencl in phase 1,2,5,6 and 7.
+- ```phase_1.cc```: Opencl hello world
+- ```phase_2.cc```: Opencl information pulling and matrix addition.
+- ```phase_5.cc```: ZNCC implementation using global memory.
+- ```phase_6_image2d_t.cc```: ZNCC implementation using the image2d opencl object.
+- ```phase_6_vectorized.cc```: ZNCC implementation doing local tiling and vectorized loads.
+- ```phase_6_tiled.cc```: ZNCC implementation doing local tiling.
+- ```phase_7_integral.cc```: ZNCC implementation utilizing local tiling, vectorization, compile options/injection and integral images.
+- ```phase_7_integral_aps.cc```: Utilizes aps scans to speed up the integral image calculations
+### ```data/kernels/*```
+- ```phase_1.cl```: Opencl Kernels: Opencl hello world
+- ```phase_2.cl```: Opencl Kernels: Matrix addition.
+- ```phase_5.cl```: Opencl Kernels: ZNCC implementation using global memory.
+- ```phase_6_image2d_t.cl```: Opencl Kernels: ZNCC implementation using the image2d opencl object.
+- ```phase_6_vectorized.cl```: Opencl Kernels: ZNCC implementation doing local tiling and vectorized loads.
+- ```phase_6_tiled.cl```: Opencl Kernels: ZNCC implementation doing local tiling.
+- ```phase_7_integral.cl```: Opencl Kernels: ZNCC implementation utilizing local tiling, vectorization, and integral images.
+- ```phase_7_integral_aps.cl```: Opencl Kernels: Utilizes aps scans to speed up the integral image calculations
+### ```app/*/*```
+Supporting functionality for executing the different workloads:
+- ```combined_workloads.cc```: Collects different workloads under single functions, for easy running.
+- ```helpers.cc```: Different helper functions dealing with opencl platforms and devices, reporting timings from opencl events and checksumming float arrays.
+- ```image.cc```: Data structure for holding image pixel data in memory.
+- ```opencl_runtime.cc```: Collects the opencl program initialization tasks under the same roof: context creation, command queueu creation, program loading and building, creating the kernels from the program.
+- ```thread_pool.cc```: simple thread pool implementation.
+- ```profiler.cc```: Static profiling/logging functionality provider.
+- ```scope_timer.cc```: Logs the 'scopes' execution time on desctruction.
+

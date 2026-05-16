@@ -1,0 +1,124 @@
+#include <helpers.h>
+#include <profiler.h>
+
+namespace mp{
+
+    //Simple checksum for float array comparision
+    double simple_checksum_float_array(const std::vector<float>& m){
+        double checksum = 0.0;
+        for(int i = 0; i < m.size(); ++i){
+            checksum += (m[i] * i);
+        }
+        return checksum;
+    }
+
+    //Reports the timing information of the given event to the profiler
+    void report_cl_timing(const std::string& label, std::shared_ptr<clw::Event> event){
+        clw::ErrorOr<cl_ulong> queued = event->profiling_info(CL_PROFILING_COMMAND_QUEUED);
+        clw::ErrorOr<cl_ulong> submit = event->profiling_info(CL_PROFILING_COMMAND_SUBMIT);
+        clw::ErrorOr<cl_ulong> start = event->profiling_info(CL_PROFILING_COMMAND_START);
+        clw::ErrorOr<cl_ulong> end = event->profiling_info(CL_PROFILING_COMMAND_END);
+
+        if(!queued.ok()){
+            Profiler::add_info( label + ", CL_PROFILING_COMMAND_QUEUED Error code: " + std::to_string(queued.error()));
+            return;
+        }
+        if(!submit.ok()){
+            Profiler::add_info( label + ", CL_PROFILING_COMMAND_SUBMIT Error code: " + std::to_string(submit.error()));
+            return;
+        }
+        if(!start.ok()){
+            Profiler::add_info( label + ", CL_PROFILING_COMMAND_START Error code: " + std::to_string(start.error()));
+            return;
+        }
+        if(!end.ok()){
+            Profiler::add_info( label + ", CL_PROFILING_COMMAND_END Error code: " + std::to_string(end.error()));
+            return;
+        }
+        
+        double queued_to_submit = (submit.value() - queued.value()) * 1e-6;
+        double submit_to_start = (start.value() - submit.value()) * 1e-6;
+        double execution = (end.value() - start.value()) * 1e-6;
+        double total = (end.value() - queued.value()) * 1e-6;
+
+        //CL timings are in nanoseconds => convert to milliseconds
+        Profiler::add_additional_timing(label + " [QUEUE to SUBMIT]", queued_to_submit, false);
+        Profiler::add_additional_timing(label + " [SUBMIT to START]", submit_to_start, false);
+        Profiler::add_additional_timing(label + " [QUEUE to END]", total, false);
+        Profiler::add_timing(label + " [EXECUTION]", execution, false);
+    }
+
+
+    //Gets available platforms
+    void get_platforms(std::vector<clw::Platform>& platforms){
+        clw::ErrorOr<std::vector<clw::Platform>> available_platforms = clw::Platform::available();
+        if(available_platforms.ok()){
+            platforms = std::move(available_platforms).value();
+        }
+    }
+
+    //Gets devices from the given platform
+    void get_devices(clw::Platform platform, std::vector<clw::Device>& devices){
+        clw::ErrorOr<std::vector<clw::Device>> available_devices = platform.devices();
+        if(available_devices.ok()){
+            devices = std::move(available_devices).value();
+        }
+    }
+
+    //Returns the name of the given device
+    std::string get_device_name(clw::Device& device){
+        std::string device_name = "";
+        clw::ErrorOr<size_t> info_size = device.info_size(CL_DEVICE_NAME);
+        if(info_size.ok()){
+            std::vector<char> device_info_fetch_data(info_size.value());
+            if(device.info(device_info_fetch_data.data(), info_size.value(), CL_DEVICE_NAME) == CL_SUCCESS){
+                device_name = std::string(device_info_fetch_data.data());
+            }
+        }
+        return device_name;
+    }
+
+    //Find a computing device that is prefered, preference order: GPU, INTEGRATED, CPU
+    clw::Device prefered_device(){
+        //Get platforms
+        std::vector<clw::Platform> platforms;
+        get_platforms(platforms);
+        //Find prefered device
+        clw::Device integrated_gpu, cpu;
+        for(auto& platform : platforms){
+            //Get devices
+            std::vector<clw::Device> devices;
+            get_devices(platform, devices);
+            for(auto& device: devices){
+                //Query type
+                cl_device_type device_type;
+                if(device.info(&device_type, sizeof(cl_device_type), CL_DEVICE_TYPE) == CL_SUCCESS){
+                    if(device_type & CL_DEVICE_TYPE_GPU){
+                        //Find out if the device shares memory with the host
+                        cl_bool shared_memory = false;
+                        if(device.info(&shared_memory, sizeof(cl_bool), CL_DEVICE_HOST_UNIFIED_MEMORY) == CL_SUCCESS){
+                            if(!shared_memory){
+                                //Dedicated GPU
+                                Profiler::add_info("prefered_device - Found a dedicated GPU: " + get_device_name(device));
+                                return device;
+                            }
+                            integrated_gpu = device;
+                        }
+                    }
+                    else if(device_type & CL_DEVICE_TYPE_CPU){
+                        cpu = device;
+                    }
+                }
+
+            }
+        }
+        //INTEGRATED GPU => CPU
+        if(integrated_gpu.id != 0){
+            Profiler::add_info("prefered_device - Found a integrated GPU: " + get_device_name(integrated_gpu));
+            return integrated_gpu;
+        }
+        Profiler::add_info("prefered_device - Falling back to CPU: " + get_device_name(cpu));
+        return cpu;
+    }
+
+}

@@ -1,0 +1,52 @@
+{
+    "version": 3,
+    "configurePresets":[
+        {
+            "name": "debug",
+            "hidden": false,
+            "description": "Debug build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables":{
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_ASANLEAK": "OFF"
+            }
+        },
+        {
+            "name": "release",
+            "hidden": false,
+            "description": "Release build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables":{
+                "CMAKE_BUILD_TYPE": "Release",
+                "ENABLE_ASANLEAK": "OFF"
+            }
+        },
+        {
+            "name": "asanleak",
+            "hidden": false,
+            "description": "Debug build with address sanitizer + leak enabled",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/asanleak",
+            "cacheVariables":{
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_ASANLEAK": "ON"
+            }
+        }
+    ],
+    "buildPresets":[
+        {
+            "name":"debug",
+            "configurePreset":"debug"
+        },
+        {
+            "name":"release",
+            "configurePreset":"release"
+        },
+        {
+            "name":"asanleak",
+            "configurePreset":"asanleak"
+        }
+    ]
+}
